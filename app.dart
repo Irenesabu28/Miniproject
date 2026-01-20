@@ -36,16 +36,52 @@ class _HomePageState extends State<HomePage> {
   String currentStatus = 'Normal';
   final List<String> statusOptions = ['Normal', 'Warning', 'Critical'];
 
+  // Responsive sizing helpers
+  double _getResponsiveFontSize(BuildContext context, double baseSize) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth < 360) return baseSize * 0.85;
+    if (screenWidth < 600) return baseSize * 0.95;
+    return baseSize;
+  }
+
+  double _getResponsivePadding(BuildContext context, double basePadding) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth < 360) return basePadding * 0.6;
+    if (screenWidth < 600) return basePadding * 0.8;
+    return basePadding;
+  }
+
+  double _getResponsiveButtonHeight(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    if (screenHeight < 600) return 44;
+    if (screenHeight < 800) return 48;
+    return 56;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isMobile = screenWidth < 600;
+    
+    final titleFontSize = _getResponsiveFontSize(context, 24);
+    final headingFontSize = _getResponsiveFontSize(context, 16);
+    final subHeadingFontSize = _getResponsiveFontSize(context, 14);
+    final statusFontSize = _getResponsiveFontSize(context, 28);
+    final buttonFontSize = _getResponsiveFontSize(context, 16);
+    
+    final horizontalPadding = _getResponsivePadding(context, 20);
+    final verticalPadding = _getResponsivePadding(context, 24);
+    final buttonHeight = _getResponsiveButtonHeight(context);
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title: const Text(
+        title: Text(
           'Smart Alert System',
           style: TextStyle(
-            fontSize: 24,
+            fontSize: titleFontSize,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
           ),
@@ -54,7 +90,10 @@ class _HomePageState extends State<HomePage> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -75,20 +114,20 @@ class _HomePageState extends State<HomePage> {
                     width: 1.5,
                   ),
                 ),
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.all(_getResponsivePadding(context, 24)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'System Status',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: subHeadingFontSize,
                         fontWeight: FontWeight.w600,
                         color: Colors.grey,
                         letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: isMobile ? 8 : 12),
                     Row(
                       children: [
                         Container(
@@ -99,13 +138,15 @@ class _HomePageState extends State<HomePage> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Text(
-                          currentStatus,
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: _getStatusColor(),
+                        SizedBox(width: isMobile ? 8 : 12),
+                        Expanded(
+                          child: Text(
+                            currentStatus,
+                            style: TextStyle(
+                              fontSize: statusFontSize,
+                              fontWeight: FontWeight.bold,
+                              color: _getStatusColor(),
+                            ),
                           ),
                         ),
                       ],
@@ -113,19 +154,19 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: isMobile ? 20 : 32),
 
               // Settings Section
-              const Text(
+              Text(
                 'Settings',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: headingFontSize,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                   letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: isMobile ? 10 : 16),
 
               // Notifications Toggle
               Container(
@@ -145,22 +186,22 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
                 child: SwitchListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: isMobile ? 8 : 12,
                   ),
-                  title: const Text(
+                  title: Text(
                     'Enable Notifications',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: _getResponsiveFontSize(context, 16),
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
                   ),
-                  subtitle: const Text(
+                  subtitle: Text(
                     'Receive real-time alerts',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: _getResponsiveFontSize(context, 13),
                       color: Colors.grey,
                     ),
                   ),
@@ -172,7 +213,7 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: isMobile ? 10 : 16),
 
               // Status Selector
               Container(
@@ -191,24 +232,25 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: _getResponsivePadding(context, 16),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Change Status',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: headingFontSize,
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: isMobile ? 8 : 12),
                     Wrap(
-                      spacing: 12,
+                      spacing: isMobile ? 8 : 12,
+                      runSpacing: isMobile ? 8 : 12,
                       children: statusOptions.map((status) {
                         final isSelected = currentStatus == status;
                         return FilterChip(
@@ -222,6 +264,7 @@ class _HomePageState extends State<HomePage> {
                           backgroundColor: Colors.grey.shade100,
                           selectedColor: _getStatusColor().withOpacity(0.2),
                           labelStyle: TextStyle(
+                            fontSize: _getResponsiveFontSize(context, 14),
                             color: isSelected
                                 ? _getStatusColor()
                                 : Colors.grey.shade600,
@@ -241,12 +284,12 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: isMobile ? 20 : 32),
 
               // Action Buttons
               SizedBox(
                 width: double.infinity,
-                height: 56,
+                height: buttonHeight,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue.shade600,
@@ -269,20 +312,20 @@ class _HomePageState extends State<HomePage> {
                       ),
                     );
                   },
-                  child: const Text(
+                  child: Text(
                     'Check Status',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: buttonFontSize,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: isMobile ? 8 : 12),
               SizedBox(
                 width: double.infinity,
-                height: 56,
+                height: buttonHeight,
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.blue.shade600,
@@ -306,10 +349,10 @@ class _HomePageState extends State<HomePage> {
                       ),
                     );
                   },
-                  child: const Text(
+                  child: Text(
                     'Reset Settings',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: buttonFontSize,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
                     ),
