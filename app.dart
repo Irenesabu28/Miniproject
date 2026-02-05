@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -10,16 +8,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2563EB),
-          brightness: Brightness.light,
-        ),
-        typography: Typography.material2021(),
-      ),
-      home: const SplashScreen(),
+      title: 'Smart Alert System',
+      theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)),
+      home: const HomePage(),
     );
   }
 }
@@ -47,7 +38,6 @@ class _SplashScreenState extends State<SplashScreen>
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
 
     _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
         .animate(
@@ -108,7 +98,7 @@ class _SplashScreenState extends State<SplashScreen>
                       Icons.notifications_active,
                       color: Colors.white,
                       size: 50,
-                    ),
+                        color: Colors.blue.withAlpha((0.1 * 255).round()),
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -138,7 +128,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-class HomePage extends StatefulWidget {
+                                  color: _getStatusColor().withAlpha((0.5 * 255).round()),
   const HomePage({super.key});
 
   @override
@@ -188,7 +178,7 @@ class _HomePageState extends State<HomePage> {
     final verticalPadding = _getResponsivePadding(context, 24);
     final buttonHeight = _getResponsiveButtonHeight(context);
 
-    return Scaffold(
+                        color: Colors.grey.withAlpha((0.08 * 255).round()),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.blue.shade600,
@@ -235,7 +225,7 @@ class _HomePageState extends State<HomePage> {
                     width: 2,
                   ),
                   boxShadow: [
-                    BoxShadow(
+                        color: Colors.grey.withAlpha((0.08 * 255).round()),
                       color: Colors.blue.withOpacity(0.1),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
