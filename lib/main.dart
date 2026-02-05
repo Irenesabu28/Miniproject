@@ -171,7 +171,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.08),
+                    color: Colors.grey.withAlpha((0.08 * 255).round()),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -218,7 +218,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.08),
+                    color: Colors.grey.withAlpha((0.08 * 255).round()),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -253,7 +253,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           });
                         },
                         backgroundColor: Colors.grey.shade100,
-                        selectedColor: _getStatusColor().withOpacity(0.2),
+                        selectedColor: _getStatusColor().withAlpha((0.2 * 255).round()),
                         labelStyle: TextStyle(
                           color: isSelected
                               ? _getStatusColor()
@@ -285,7 +285,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   backgroundColor: Colors.blue.shade600,
                   foregroundColor: Colors.white,
                   elevation: 4,
-                  shadowColor: Colors.blue.withOpacity(0.4),
+                  shadowColor: Colors.blue.withAlpha((0.4 * 255).round()),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
