@@ -1,5 +1,116 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// --- Storage Service ---
+class StorageService {
+  static const String _keyName = 'user_name';
+  static const String _keyEmail = 'user_email';
+  static const String _keyPhone = 'user_phone';
+  static const String _keyLocation = 'user_location';
+
+  static Future<void> saveProfile({
+    required String name,
+    required String email,
+    required String phone,
+    required String location,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyName, name);
+    await prefs.setString(_keyEmail, email);
+    await prefs.setString(_keyPhone, phone);
+    await prefs.setString(_keyLocation, location);
+  }
+
+  static Future<Map<String, String>> getProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      'name': prefs.getString(_keyName) ?? 'Irene Sabu',
+      'email': prefs.getString(_keyEmail) ?? 'irenesabu@example.com',
+      'phone': prefs.getString(_keyPhone) ?? '+91 98765 43210',
+      'location': prefs.getString(_keyLocation) ?? 'Kerala, India',
+    };
+  }
+}
+
+// --- Reusable Components ---
+class CustomTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hintText;
+  final IconData prefixIcon;
+  final bool obscureText;
+  final TextAlign textAlign;
+  final TextStyle? style;
+  final bool isBorderless;
+
+  const CustomTextField({
+    super.key,
+    required this.controller,
+    required this.hintText,
+    this.prefixIcon = Icons.edit,
+    this.obscureText = false,
+    this.textAlign = TextAlign.start,
+    this.style,
+    this.isBorderless = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      textAlign: textAlign,
+      style: style,
+      decoration: InputDecoration(
+        hintText: hintText,
+        prefixIcon: isBorderless ? null : Icon(prefixIcon),
+        filled: !isBorderless,
+        fillColor: Colors.white,
+        border: isBorderless
+            ? InputBorder.none
+            : OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+        isDense: isBorderless,
+        contentPadding: isBorderless ? EdgeInsets.zero : null,
+      ),
+    );
+  }
+}
+
+class PrimaryButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final String label;
+  final IconData? icon;
+  final Color? backgroundColor;
+
+  const PrimaryButton({
+    super.key,
+    required this.onPressed,
+    required this.label,
+    this.icon,
+    this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: backgroundColor ?? Colors.blue.shade600,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 2,
+        minimumSize: const Size(double.infinity, 50),
+      ),
+      icon: icon != null ? Icon(icon) : const SizedBox.shrink(),
+      label: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+    );
+  }
+}
+
 
 void main() {
   runApp(const MyApp());
@@ -169,75 +280,28 @@ class _SignInPageState extends State<SignInPage> {
                 ),
               ),
               const SizedBox(height: 48),
-              TextField(
+              CustomTextField(
                 controller: _emailController,
-                decoration: InputDecoration(
-                  hintText: 'Email',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
+                hintText: 'Email',
+                prefixIcon: Icons.email_outlined,
               ),
               const SizedBox(height: 16),
-              TextField(
+              CustomTextField(
                 controller: _passwordController,
+                hintText: 'Password',
+                prefixIcon: Icons.lock_outline,
                 obscureText: true,
-                decoration: InputDecoration(
-                  hintText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
               ),
               const SizedBox(height: 32),
-              ElevatedButton(
+              PrimaryButton(
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => const MainScreen()),
                   );
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                ),
-                child: const Text(
-                  'Sign In',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                label: 'Sign In',
               ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const MainScreen()),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.blue.shade600,
-                  side: BorderSide(color: Colors.blue.shade600, width: 1.5),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Skip',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
+
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -289,6 +353,9 @@ class _SignUpPageState extends State<SignUpPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _locationController = TextEditingController();
+
 
   @override
   Widget build(BuildContext context) {
@@ -327,69 +394,55 @@ class _SignUpPageState extends State<SignUpPage> {
                 ),
               ),
               const SizedBox(height: 48),
-              TextField(
+              CustomTextField(
                 controller: _nameController,
-                decoration: InputDecoration(
-                  hintText: 'Full Name',
-                  prefixIcon: const Icon(Icons.person_outline),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
+                hintText: 'Full Name',
+                prefixIcon: Icons.person_outline,
               ),
               const SizedBox(height: 16),
-              TextField(
+              CustomTextField(
                 controller: _emailController,
-                decoration: InputDecoration(
-                  hintText: 'Email',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
+                hintText: 'Email',
+                prefixIcon: Icons.email_outlined,
               ),
               const SizedBox(height: 16),
-              TextField(
+              CustomTextField(
+                controller: _phoneController,
+                hintText: 'Phone Number',
+                prefixIcon: Icons.phone_android_outlined,
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                controller: _locationController,
+                hintText: 'Location',
+                prefixIcon: Icons.location_on_outlined,
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
                 controller: _passwordController,
+                hintText: 'Password',
+                prefixIcon: Icons.lock_outline,
                 obscureText: true,
-                decoration: InputDecoration(
-                  hintText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
               ),
+
               const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const MainScreen()),
+              PrimaryButton(
+                onPressed: () async {
+                  await StorageService.saveProfile(
+                    name: _nameController.text,
+                    email: _emailController.text,
+                    phone: _phoneController.text,
+                    location: _locationController.text,
                   );
+                  if (mounted) {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const MainScreen()),
+                    );
+                  }
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                ),
-                child: const Text(
-                  'Sign Up',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                label: 'Sign Up',
               ),
+
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -576,11 +629,65 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
   @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool _isEditing = false;
+  bool _isLoading = true;
+  
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _locationController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final data = await StorageService.getProfile();
+    if (mounted) {
+      setState(() {
+        _nameController.text = data['name']!;
+        _emailController.text = data['email']!;
+        _phoneController.text = data['phone']!;
+        _locationController.text = data['location']!;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    await StorageService.saveProfile(
+      name: _nameController.text,
+      email: _emailController.text,
+      phone: _phoneController.text,
+      location: _locationController.text,
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _locationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
@@ -590,8 +697,15 @@ class ProfilePage extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Colors.blue),
-            onPressed: () {},
+            icon: Icon(_isEditing ? Icons.check_rounded : Icons.settings_outlined, color: Colors.blue),
+            onPressed: () async {
+              if (_isEditing) {
+                await _saveProfile();
+              }
+              setState(() {
+                _isEditing = !_isEditing;
+              });
+            },
           ),
         ],
       ),
@@ -620,24 +734,58 @@ class ProfilePage extends StatelessWidget {
                       Positioned(
                         bottom: 0,
                         right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
-                          child: const Icon(Icons.edit_rounded, color: Colors.white, size: 20),
+                        child: GestureDetector(
+                          onTap: () async {
+                            if (_isEditing) {
+                              await _saveProfile();
+                            }
+                            setState(() {
+                              _isEditing = !_isEditing;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
+                            child: Icon(_isEditing ? Icons.check_rounded : Icons.edit_rounded, color: Colors.white, size: 20),
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Irene Sabu',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
-                  ),
+                  if (_isEditing)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: CustomTextField(
+                        controller: _nameController,
+                        hintText: 'Enter Name',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+                        isBorderless: true,
+                      ),
+                    )
+                  else
+                    Text(
+                      _nameController.text,
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
                   const SizedBox(height: 4),
-                  Text(
-                    'irenesabu@example.com',
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                  ),
+                  if (_isEditing)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: CustomTextField(
+                        controller: _emailController,
+                        hintText: 'Enter Email',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                        isBorderless: true,
+                      ),
+                    )
+                  else
+                    Text(
+                      _emailController.text,
+                      style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                    ),
                 ],
               ),
             ),
@@ -652,18 +800,18 @@ class ProfilePage extends StatelessWidget {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
                   ),
                   const SizedBox(height: 16),
-                  _buildDetailTile(Icons.person_outline, 'Full Name', 'Irene Sabu'),
-                  _buildDetailTile(Icons.email_outlined, 'Email Address', 'irenesabu@example.com'),
-                  _buildDetailTile(Icons.phone_android_outlined, 'Phone Number', '+91 98765 43210'),
-                  _buildDetailTile(Icons.location_on_outlined, 'Location', 'Kerala, India'),
+                  _buildDetailTile(Icons.person_outline, 'Full Name', _nameController, _isEditing),
+                  _buildDetailTile(Icons.email_outlined, 'Email Address', _emailController, _isEditing),
+                  _buildDetailTile(Icons.phone_android_outlined, 'Phone Number', _phoneController, _isEditing),
+                  _buildDetailTile(Icons.location_on_outlined, 'Location', _locationController, _isEditing),
                   const SizedBox(height: 32),
                   const Text(
                     'App Settings',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
                   ),
                   const SizedBox(height: 16),
-                  _buildDetailTile(Icons.notifications_none_outlined, 'Notification Preferences', 'All Alerts Enabled'),
-                  _buildDetailTile(Icons.security_outlined, 'Privacy & Security', 'Data Encryption Active'),
+                  _buildSimpleTile(Icons.notifications_none_outlined, 'Notification Preferences', 'All Alerts Enabled'),
+                  _buildSimpleTile(Icons.security_outlined, 'Privacy & Security', 'Data Encryption Active'),
                   const SizedBox(height: 40),
                   SizedBox(
                     width: double.infinity,
@@ -693,7 +841,43 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailTile(IconData icon, String label, String value) {
+  Widget _buildDetailTile(IconData icon, String label, TextEditingController controller, bool isEditing) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.blue.shade600, size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                const SizedBox(height: 4),
+                if (isEditing)
+                  CustomTextField(
+                    controller: controller,
+                    hintText: 'Enter $label',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
+                    isBorderless: true,
+                  )
+                else
+                  Text(controller.text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSimpleTile(IconData icon, String label, String value) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -719,3 +903,4 @@ class ProfilePage extends StatelessWidget {
     );
   }
 }
+
