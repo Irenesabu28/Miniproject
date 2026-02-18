@@ -4,10 +4,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // --- Storage Service ---
 class StorageService {
+  static SharedPreferences? _prefs;
+
   static const String _keyName = 'user_name';
   static const String _keyEmail = 'user_email';
   static const String _keyPhone = 'user_phone';
   static const String _keyLocation = 'user_location';
+
+  static Future<SharedPreferences> get _instance async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!;
+  }
 
   static Future<void> saveProfile({
     required String name,
@@ -15,7 +22,7 @@ class StorageService {
     required String phone,
     required String location,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _instance;
     await prefs.setString(_keyName, name);
     await prefs.setString(_keyEmail, email);
     await prefs.setString(_keyPhone, phone);
@@ -23,7 +30,7 @@ class StorageService {
   }
 
   static Future<Map<String, String>> getProfile() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _instance;
     return {
       'name': prefs.getString(_keyName) ?? 'Irene Sabu',
       'email': prefs.getString(_keyEmail) ?? 'irenesabu@example.com',
@@ -481,15 +488,16 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  static const List<Widget> _pages = <Widget>[
-    DashboardPage(),
-    ProfilePage(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: const [
+          DashboardPage(),
+          ProfilePage(),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         selectedItemColor: Colors.blue.shade700,
