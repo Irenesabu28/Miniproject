@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 // --- Storage Service ---
 class StorageService {
@@ -34,7 +36,7 @@ class StorageService {
     return {
       'name': prefs.getString(_keyName) ?? 'Irene Sabu',
       'email': prefs.getString(_keyEmail) ?? 'irenesabu@example.com',
-      'phone': prefs.getString(_keyPhone) ?? '+91 98765 43210',
+      'phone': prefs.getString(_keyPhone) ?? '+91 79073 74029',
       'location': prefs.getString(_keyLocation) ?? 'Kerala, India',
     };
   }
@@ -119,7 +121,24 @@ class PrimaryButton extends StatelessWidget {
 }
 
 
-void main() {
+final database = FirebaseDatabase.instanceFor(
+  app: Firebase.app(),
+  databaseURL: 'https://miniproject-fc41e-default-rtdb.firebaseio.com/',
+).ref();
+
+void addTestTrip() async {
+  await database.child("trip_events").push().set({
+    "device_id": "D01",
+    "location": "Erattupetta",
+    "timestamp": DateTime.now().toString(),
+  });
+
+  print("Trip added successfully");
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
