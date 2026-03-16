@@ -49,15 +49,15 @@ class FirebaseService {
   }
 
   // Scoped Data Paths
-  String? get _userPath => currentUser?.uid != null ? 'users/${currentUser!.uid}' : null;
+  String? get _userPath => currentUser?.uid != null ? 'database/users/${currentUser!.uid}' : null;
 
   // Listen to current ELCB status
   Stream<String> get statusStream {
     if (!_initialized || _db == null || _userPath == null) {
-      return Stream.periodic(const Duration(seconds: 5), (i) => i % 10 == 0 ? 'tripped' : 'stable').startWith('stable');
+      return Stream.periodic(const Duration(seconds: 5), (i) => i % 10 == 0 ? 'TRIPPED' : 'NORMAL').startWith('NORMAL');
     }
-    return _db!.ref('$_userPath/status/current').onValue.map((event) {
-      return event.snapshot.value?.toString() ?? 'stable';
+    return _db!.ref('$_userPath/ELCB_SYSTEM/status').onValue.map((event) {
+      return event.snapshot.value?.toString() ?? 'NORMAL';
     });
   }
 
@@ -65,9 +65,7 @@ class FirebaseService {
   Stream<List<TripLog>> get tripLogsStream {
     if (!_initialized || _db == null || _userPath == null) {
       return Stream.value([
-        TripLog(timestamp: DateTime.now().subtract(const Duration(days: 1)), isTripped: true, description: "System Trip"),
-        TripLog(timestamp: DateTime.now().subtract(const Duration(days: 2, hours: 5)), isTripped: true, description: "Voltage drop"),
-        TripLog(timestamp: DateTime.now().subtract(const Duration(days: 3, hours: 2)), isTripped: true, description: "Manual test"),
+        TripLog(timestamp: DateTime.now().subtract(const Duration(days: 1)), isTripped: true, description: "TRIPPED"),
       ]);
     }
     return _db!.ref('$_userPath/logs').onValue.map((event) {
@@ -77,10 +75,20 @@ class FirebaseService {
       if (data != null) {
         data.forEach((key, value) {
           final logMap = value as Map<dynamic, dynamic>;
+          final dateStr = logMap['date'] ?? '';
+          final timeStr = logMap['time'] ?? '';
+          
+          DateTime timestamp;
+          try {
+            timestamp = DateTime.parse('$dateStr $timeStr');
+          } catch (e) {
+            timestamp = DateTime.now();
+          }
+
           logs.add(TripLog(
-            timestamp: DateTime.parse(logMap['timestamp'] ?? DateTime.now().toIso8601String()),
-            isTripped: true,
-            description: logMap['reason'] ?? 'ELCB Tripped',
+            timestamp: timestamp,
+            isTripped: logMap['status'] == 'TRIPPED',
+            description: logMap['status'] ?? 'Unknown',
           ));
         });
         logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -115,12 +123,20 @@ class FirebaseService {
   Future<void> resetDatabase() async {
     if (!_initialized || _db == null || _userPath == null) return;
     
+    final now = DateTime.now();
+    final dateStr = "${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}";
+    final timeStr = "${now.hour.toString().padLeft(2,'0')}:${now.minute.toString().padLeft(2,'0')}";
+
     await _db!.ref(_userPath).set({
-      "status": {"current": "stable"},
+      "ELCB_SYSTEM": {
+        "status": "NORMAL",
+        "last_updated": "$dateStr $timeStr"
+      },
       "logs": {
         "init": {
-          "timestamp": DateTime.now().toIso8601String(),
-          "reason": "Database Reset"
+          "status": "NORMAL",
+          "date": dateStr,
+          "time": timeStr
         }
       },
       "profile": UserModel().toJson()

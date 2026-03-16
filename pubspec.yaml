@@ -38,9 +38,9 @@ dependencies:
   shared_preferences: ^2.5.4
   intl: ^0.20.2
   animate_do: ^4.2.0
-  firebase_core: ^4.5.0
-  firebase_database: ^12.1.4
-  firebase_auth: ^6.2.0
+  firebase_core: ^2.25.4
+  firebase_database: ^10.4.5
+  firebase_auth: ^4.17.4
 
 dev_dependencies:
   flutter_test:

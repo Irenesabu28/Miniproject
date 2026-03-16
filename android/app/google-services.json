@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "339720549396",
+    "firebase_url": "https://miniproject-fc41e-default-rtdb.firebaseio.com",
+    "project_id": "miniproject-fc41e",
+    "storage_bucket": "miniproject-fc41e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:339720549396:android:0ea40848de720f0535e301",
+        "android_client_info": {
+          "package_name": "com.example.elcb_monitor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAspo3Jm7F3YSAmeFyTUmqby5CiYXfMTos"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

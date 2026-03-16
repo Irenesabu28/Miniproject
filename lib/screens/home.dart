@@ -52,8 +52,8 @@ class _HomePageState extends State<HomePage> {
     return StreamBuilder<String>(
       stream: _firebaseService.statusStream,
       builder: (context, snapshot) {
-        final status = snapshot.data ?? 'stable';
-        final isTripped = status.toLowerCase() == 'tripped';
+        final status = snapshot.data ?? 'NORMAL';
+        final isTripped = status.toUpperCase() == 'TRIPPED';
 
         return Stack(
           children: [

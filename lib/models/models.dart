@@ -1,28 +1,32 @@
 class UserModel {
   String name;
+  String email;
   String phone;
   String address;
-  String consumerNumber;
+  String consumerNumber; // Maps to consumer_number in JSON
 
   UserModel({
-    this.name = 'Irene Sabu',
-    this.phone = '+91 9876543210',
-    this.address = '123, Green Valley, Kerala, India',
-    this.consumerNumber = 'ELCB-7788-2026',
+    this.name = 'Irene',
+    this.email = 'irene@gmail.com',
+    this.phone = '9876543210',
+    this.address = 'Thrissur',
+    this.consumerNumber = '123456789',
   });
 
   Map<String, dynamic> toJson() => {
     'name': name,
+    'email': email,
     'phone': phone,
     'address': address,
-    'consumerNumber': consumerNumber,
+    'consumer_number': consumerNumber,
   };
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
     name: json['name'] ?? '',
+    email: json['email'] ?? '',
     phone: json['phone'] ?? '',
     address: json['address'] ?? '',
-    consumerNumber: json['consumerNumber'] ?? '',
+    consumerNumber: json['consumer_number'] ?? '',
   );
 }
 
