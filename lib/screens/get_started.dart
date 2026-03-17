@@ -32,7 +32,7 @@ class GetStartedPage extends StatelessWidget {
                 height: 300,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                 ),
               ),
             ),
@@ -49,9 +49,9 @@ class GetStartedPage extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
+                        color: Colors.white.withValues(alpha: 0.05),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                       ),
                       child: const Icon(
                         Icons.bolt_rounded,
@@ -100,7 +100,7 @@ class GetStartedPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           elevation: 10,
-                          shadowColor: AppColors.primary.withOpacity(0.5),
+                          shadowColor: AppColors.primary.withValues(alpha: 0.5),
                         ),
                         child: const Text(
                           'GET STARTED',

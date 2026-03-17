@@ -66,7 +66,7 @@ class _HomePageState extends State<HomePage> {
                 height: 200,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: (isTripped ? AppColors.statusTripped : AppColors.statusStable).withOpacity(0.1),
+                  color: (isTripped ? AppColors.statusTripped : AppColors.statusStable).withValues(alpha: 0.1),
                 ),
               ),
             ),
@@ -102,12 +102,12 @@ class _HomePageState extends State<HomePage> {
                                   shape: BoxShape.circle,
                                   color: AppColors.surface,
                                   border: Border.all(
-                                    color: (isTripped ? AppColors.statusTripped : AppColors.statusStable).withOpacity(0.5),
+                                    color: (isTripped ? AppColors.statusTripped : AppColors.statusStable).withValues(alpha: 0.5),
                                     width: 4,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: (isTripped ? AppColors.statusTripped : AppColors.statusStable).withOpacity(0.3),
+                                      color: (isTripped ? AppColors.statusTripped : AppColors.statusStable).withValues(alpha: 0.3),
                                       blurRadius: 40,
                                       spreadRadius: 10,
                                     ),
@@ -174,14 +174,14 @@ class _HomePageState extends State<HomePage> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: AppColors.primary),
@@ -232,7 +232,7 @@ class LogsPage extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.history_toggle_off_rounded, size: 80, color: Colors.white.withOpacity(0.1)),
+                          Icon(Icons.history_toggle_off_rounded, size: 80, color: Colors.white.withValues(alpha: 0.1)),
                           const SizedBox(height: 16),
                           const Text('No trip events recorded', style: TextStyle(color: AppColors.textBody)),
                         ],
@@ -252,14 +252,14 @@ class LogsPage extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: AppColors.surface,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withOpacity(0.05)),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                           ),
                           child: Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: AppColors.statusTripped.withOpacity(0.1),
+                                  color: AppColors.statusTripped.withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(Icons.flash_on_rounded, color: AppColors.statusTripped, size: 24),
@@ -406,6 +406,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         consumerNumber: _consumerController.text,
                       );
                       await _firebaseService.saveProfile(updatedUser);
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Profile updated successfully!')),
                       );
@@ -426,6 +427,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: TextButton.icon(
                   onPressed: () async {
                     await _firebaseService.resetDatabase();
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Database has been reset and initialized!')),
                     );

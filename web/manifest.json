@@ -1,6 +1,6 @@
 {
-    "name": "elcb_monitor",
-    "short_name": "elcb_monitor",
+    "name": "ELCB Monitor",
+    "short_name": "ELCB Monitor",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
