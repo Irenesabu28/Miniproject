@@ -1,12 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
 
 class FirebaseService {
   FirebaseDatabase? _db;
   FirebaseAuth? _auth;
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
   
   // Singleton pattern
@@ -34,13 +36,18 @@ class FirebaseService {
     if (creds.user != null) {
       // Initialize database structure for new user
       await resetDatabase();
+      await setupFCM();
     }
     return creds;
   }
 
   Future<UserCredential?> login(String email, String password) async {
     if (!_initialized) return null;
-    return await _auth!.signInWithEmailAndPassword(email: email, password: password);
+    final creds = await _auth!.signInWithEmailAndPassword(email: email, password: password);
+    if (creds.user != null) {
+      await setupFCM();
+    }
+    return creds;
   }
 
   Future<void> logout() async {
@@ -141,6 +148,72 @@ class FirebaseService {
       },
       "profile": UserModel().toJson()
     });
+  }
+
+  // FCM Setup
+  Future<void> setupFCM() async {
+    if (!_initialized) return;
+
+    // Initialize Local Notifications for Foreground Alerts
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+    await _localNotifications.initialize(initializationSettings);
+
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    // Request permission for push notifications
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      debugPrint('User granted permission');
+      
+      // Get the token for this device
+      String? token = await messaging.getToken();
+      debugPrint("FCM Token: $token");
+      
+      // Save token for push notifications (consistent with your desired path structure)
+      if (token != null && _userPath != null) {
+        await _db!.ref('$_userPath/fcm_token').set(token);
+      }
+      
+      // Listen for foreground status changes to show local alerts
+      _setupLocalAlerts();
+    } else {
+      debugPrint('User declined or has not accepted permission');
+    }
+  }
+
+  void _setupLocalAlerts() {
+    if (_userPath == null || _db == null) return;
+
+    _db!.ref('$_userPath/ELCB_SYSTEM/status').onValue.listen((event) {
+      final status = event.snapshot.value?.toString() ?? 'NORMAL';
+      if (status == "TRIPPED") {
+        _showLocalNotification();
+      }
+    });
+  }
+
+  Future<void> _showLocalNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'trip_alerts',
+      'Trip Alerts',
+      channelDescription: 'ELCB Trip Detection Alerts',
+      importance: Importance.max,
+      priority: Priority.high,
+      ticker: 'ticker',
+    );
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
+    await _localNotifications.show(
+      0,
+      '⚠️ ELCB ALERT!',
+      'Power trip detected! Please check your ELCB system immediately.',
+      platformChannelSpecifics,
+    );
   }
 }
 
