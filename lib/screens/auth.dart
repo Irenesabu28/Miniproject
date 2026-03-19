@@ -20,6 +20,13 @@ class _AuthPageState extends State<AuthPage> {
   
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -144,7 +151,7 @@ class _AuthPageState extends State<AuthPage> {
                       
                       FadeInUp(
                         delay: const Duration(milliseconds: 400),
-                        child: _buildTextField(
+                        child: AuthTextField(
                           controller: _emailController,
                           label: 'Email Address',
                           icon: Icons.email_outlined,
@@ -154,7 +161,7 @@ class _AuthPageState extends State<AuthPage> {
                       const SizedBox(height: 20),
                       FadeInUp(
                         delay: const Duration(milliseconds: 600),
-                        child: _buildTextField(
+                        child: AuthTextField(
                           controller: _passwordController,
                           label: 'Password',
                           icon: Icons.lock_outline_rounded,
@@ -218,15 +225,28 @@ class _AuthPageState extends State<AuthPage> {
       ),
     );
   }
+}
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    bool isPassword = false,
-    TextInputType? keyboardType,
-    Widget? suffixIcon,
-  }) {
+class AuthTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final IconData icon;
+  final bool isPassword;
+  final TextInputType? keyboardType;
+  final Widget? suffixIcon;
+
+  const AuthTextField({
+    super.key,
+    required this.controller,
+    required this.label,
+    required this.icon,
+    this.isPassword = false,
+    this.keyboardType,
+    this.suffixIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

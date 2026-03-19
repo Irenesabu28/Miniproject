@@ -61,11 +61,11 @@ class FirebaseService {
   // Listen to current ELCB status
   Stream<String> get statusStream {
     if (!_initialized || _db == null || _userPath == null) {
-      return Stream.periodic(const Duration(seconds: 5), (i) => i % 10 == 0 ? 'TRIPPED' : 'NORMAL').startWith('NORMAL');
+      return Stream.periodic(const Duration(seconds: 5), (i) => i % 10 == 0 ? 'TRIPPED' : 'NORMAL').startWith('NORMAL').distinct();
     }
     return _db!.ref('$_userPath/ELCB_SYSTEM/status').onValue.map((event) {
       return event.snapshot.value?.toString() ?? 'NORMAL';
-    });
+    }).distinct();
   }
 
   // Get Trip Logs
@@ -101,7 +101,7 @@ class FirebaseService {
         logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       }
       return logs;
-    });
+    }).distinct(listEquals);
   }
 
   // Save/Update Profile

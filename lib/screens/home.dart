@@ -5,7 +5,6 @@ import '../services/firebase_service.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
 
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -15,7 +14,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-  final FirebaseService _firebaseService = FirebaseService();
 
   @override
   Widget build(BuildContext context) {
@@ -39,25 +37,32 @@ class _HomePageState extends State<HomePage> {
       ),
       body: IndexedStack(
         index: _currentIndex,
-        children: [
-          _buildStatusView(),
-          const LogsPage(),
-          const ProfilePage(),
+        children: const [
+          StatusView(),
+          LogsPage(),
+          ProfilePage(),
         ],
       ),
     );
   }
+}
 
-  Widget _buildStatusView() {
+class StatusView extends StatelessWidget {
+  const StatusView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final FirebaseService firebaseService = FirebaseService();
+    
     return StreamBuilder<String>(
-      stream: _firebaseService.statusStream,
+      stream: firebaseService.statusStream,
       builder: (context, snapshot) {
         final status = snapshot.data ?? 'NORMAL';
         final isTripped = status.toUpperCase() == 'TRIPPED';
+        final statusColor = isTripped ? AppColors.statusTripped : AppColors.statusStable;
 
         return Stack(
           children: [
-            // Background decoration
             Positioned(
               top: -50,
               left: -50,
@@ -66,7 +71,7 @@ class _HomePageState extends State<HomePage> {
                 height: 200,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: (isTripped ? AppColors.statusTripped : AppColors.statusStable).withValues(alpha: 0.1),
+                  color: statusColor.withValues(alpha: 0.1),
                 ),
               ),
             ),
@@ -81,13 +86,12 @@ class _HomePageState extends State<HomePage> {
                       'Hello, Irene',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 24),
                     ),
-                    Text(
+                    const Text(
                       'ELCB Monitoring System',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: TextStyle(color: AppColors.textBody),
                     ),
                     const SizedBox(height: 40),
                     
-                    // Main Status Card
                     Expanded(
                       child: Center(
                         child: Column(
@@ -102,12 +106,12 @@ class _HomePageState extends State<HomePage> {
                                   shape: BoxShape.circle,
                                   color: AppColors.surface,
                                   border: Border.all(
-                                    color: (isTripped ? AppColors.statusTripped : AppColors.statusStable).withValues(alpha: 0.5),
+                                    color: statusColor.withValues(alpha: 0.5),
                                     width: 4,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: (isTripped ? AppColors.statusTripped : AppColors.statusStable).withValues(alpha: 0.3),
+                                      color: statusColor.withValues(alpha: 0.3),
                                       blurRadius: 40,
                                       spreadRadius: 10,
                                     ),
@@ -119,7 +123,7 @@ class _HomePageState extends State<HomePage> {
                                     Icon(
                                       isTripped ? Icons.warning_rounded : Icons.check_circle_rounded,
                                       size: 80,
-                                      color: isTripped ? AppColors.statusTripped : AppColors.statusStable,
+                                      color: statusColor,
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
@@ -127,7 +131,7 @@ class _HomePageState extends State<HomePage> {
                                       style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
-                                        color: isTripped ? AppColors.statusTripped : AppColors.statusStable,
+                                        color: statusColor,
                                         letterSpacing: 2,
                                       ),
                                     ),
@@ -137,9 +141,8 @@ class _HomePageState extends State<HomePage> {
                             ),
                             const SizedBox(height: 60),
                             
-                            // Status info
                             FadeInUp(
-                              child: _buildInfoCard(
+                              child: InfoCard(
                                 icon: Icons.timer_outlined,
                                 title: 'Last Updated',
                                 value: DateFormat('hh:mm:ss a').format(DateTime.now()),
@@ -148,7 +151,7 @@ class _HomePageState extends State<HomePage> {
                             const SizedBox(height: 20),
                             FadeInUp(
                               delay: const Duration(milliseconds: 200),
-                              child: _buildInfoCard(
+                              child: const InfoCard(
                                 icon: Icons.wifi,
                                 title: 'Sensor Status',
                                 value: 'Connected (ESP32)',
@@ -167,8 +170,22 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+}
 
-  Widget _buildInfoCard({required IconData icon, required String title, required String value}) {
+class InfoCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+
+  const InfoCard({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -200,7 +217,6 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// Placeholder for Logs Page
 class LogsPage extends StatelessWidget {
   const LogsPage({super.key});
 
@@ -218,7 +234,7 @@ class LogsPage extends StatelessWidget {
             const Text('Previous records of ELCB trips', style: TextStyle(color: AppColors.textBody)),
             const SizedBox(height: 24),
             Expanded(
-              child: StreamBuilder(
+              child: StreamBuilder<List<TripLog>>(
                 stream: firebaseService.tripLogsStream,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -246,44 +262,7 @@ class LogsPage extends StatelessWidget {
                       final log = logs[index];
                       return FadeInLeft(
                         delay: Duration(milliseconds: index * 100),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: AppColors.statusTripped.withValues(alpha: 0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.flash_on_rounded, color: AppColors.statusTripped, size: 24),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      DateFormat('EEEE, MMM d, yyyy').format(log.timestamp),
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                    Text(
-                                      DateFormat('hh:mm:ss a').format(log.timestamp),
-                                      style: const TextStyle(color: AppColors.textBody, fontSize: 13),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const Icon(Icons.chevron_right_rounded, color: AppColors.textBody),
-                            ],
-                          ),
-                        ),
+                        child: LogEntryCard(log: log),
                       );
                     },
                   );
@@ -297,7 +276,53 @@ class LogsPage extends StatelessWidget {
   }
 }
 
-// Placeholder for Profile Page
+class LogEntryCard extends StatelessWidget {
+  final TripLog log;
+  const LogEntryCard({super.key, required this.log});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.statusTripped.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.flash_on_rounded, color: AppColors.statusTripped, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  DateFormat('EEEE, MMM d, yyyy').format(log.timestamp),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  DateFormat('hh:mm:ss a').format(log.timestamp),
+                  style: const TextStyle(color: AppColors.textBody, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.textBody),
+        ],
+      ),
+    );
+  }
+}
+
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -324,15 +349,26 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadProfile();
   }
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _consumerController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadProfile() async {
     final user = await _firebaseService.getProfile();
     if (user != null) {
-      setState(() {
-        _nameController.text = user.name;
-        _phoneController.text = user.phone;
-        _addressController.text = user.address;
-        _consumerController.text = user.consumerNumber;
-      });
+      if (mounted) {
+        setState(() {
+          _nameController.text = user.name;
+          _phoneController.text = user.phone;
+          _addressController.text = user.address;
+          _consumerController.text = user.consumerNumber;
+        });
+      }
     }
   }
 
@@ -360,36 +396,13 @@ class _ProfilePageState extends State<ProfilePage> {
               const Text('Your electricity connection details', style: TextStyle(color: AppColors.textBody)),
               const SizedBox(height: 32),
               
-              Center(
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: AppColors.primaryGradient,
-                      ),
-                      child: const Icon(Icons.person, size: 60, color: Colors.white),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
-                        child: const Icon(Icons.edit, size: 18, color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              const ProfileAvatar(),
               const SizedBox(height: 32),
               
-              _buildField('Full Name', Icons.person_outline, _nameController),
-              _buildField('Phone Number', Icons.phone_outlined, _phoneController),
-              _buildField('Address', Icons.location_on_outlined, _addressController, maxLines: 3),
-              _buildField('Consumer Number', Icons.receipt_long_outlined, _consumerController),
+              ProfileField(label: 'Full Name', icon: Icons.person_outline, controller: _nameController),
+              ProfileField(label: 'Phone Number', icon: Icons.phone_outlined, controller: _phoneController),
+              ProfileField(label: 'Address', icon: Icons.location_on_outlined, controller: _addressController, maxLines: 3),
+              ProfileField(label: 'Consumer Number', icon: Icons.receipt_long_outlined, controller: _consumerController),
               
               const SizedBox(height: 40),
               
@@ -406,7 +419,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         consumerNumber: _consumerController.text,
                       );
                       await _firebaseService.saveProfile(updatedUser);
-                      if (!context.mounted) return;
+                      if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Profile updated successfully!')),
                       );
@@ -427,7 +440,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: TextButton.icon(
                   onPressed: () async {
                     await _firebaseService.resetDatabase();
-                    if (!context.mounted) return;
+                    if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Database has been reset and initialized!')),
                     );
@@ -443,8 +456,56 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
+}
 
-  Widget _buildField(String label, IconData icon, TextEditingController controller, {int maxLines = 1}) {
+class ProfileAvatar extends StatelessWidget {
+  const ProfileAvatar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Stack(
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: AppColors.primaryGradient,
+            ),
+            child: const Icon(Icons.person, size: 60, color: Colors.white),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
+              child: const Icon(Icons.edit, size: 18, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ProfileField extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final TextEditingController controller;
+  final int maxLines;
+
+  const ProfileField({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.controller,
+    this.maxLines = 1,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
