@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../utils/theme.dart';
 import '../services/firebase_service.dart';
 import 'package:intl/intl.dart';
@@ -18,23 +19,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        backgroundColor: AppColors.surface,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textBody,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Status'),
-          BottomNavigationBarItem(icon: Icon(Icons.history_rounded), label: 'Logs'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
-        ],
-      ),
+      extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
         children: const [
@@ -43,6 +28,187 @@ class _HomePageState extends State<HomePage> {
           ProfilePage(),
         ],
       ),
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+      ),
+    );
+  }
+}
+
+class CustomBottomNavBar extends StatelessWidget {
+  final int currentIndex;
+  final Function(int) onTap;
+
+  const CustomBottomNavBar({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      height: 70,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A).withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _NavBarItem(
+                icon: Icons.dashboard_rounded,
+                label: 'Dashboard',
+                isActive: currentIndex == 0,
+                onTap: () => onTap(0),
+              ),
+              const SizedBox(width: 60), // Space for raised item
+              _NavBarItem(
+                icon: Icons.person_rounded,
+                label: 'Settings',
+                isActive: currentIndex == 2,
+                onTap: () => onTap(2),
+              ),
+            ],
+          ),
+          Positioned(
+            top: -25,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: _NavBarCenterItem(
+                icon: Icons.bolt_rounded,
+                label: 'Trips',
+                isActive: currentIndex == 1,
+                onTap: () => onTap(1),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavBarItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _NavBarItem({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: Container(
+        width: 80,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isActive ? AppColors.primary : AppColors.textBody.withValues(alpha: 0.6),
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.outfit(
+                color: isActive ? AppColors.primary : AppColors.textBody.withValues(alpha: 0.6),
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavBarCenterItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _NavBarCenterItem({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.5), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                  blurRadius: 15,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(-2, -2),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 28),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: GoogleFonts.outfit(
+            color: isActive ? AppColors.primary : AppColors.textBody.withValues(alpha: 0.4),
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -65,110 +231,81 @@ class StatusView extends StatelessWidget {
             final isTripped = status.toUpperCase() == 'TRIPPED';
             final statusColor = isTripped ? AppColors.statusTripped : AppColors.statusStable;
 
-            return Stack(
-              children: [
-                Positioned(
-                  top: -50,
-                  left: -50,
-                  child: Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: statusColor.withValues(alpha: 0.1),
-                    ),
-                  ),
+            return Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0F172A), Color(0xFF020617)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
-                
-                SafeArea(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hello, ${user.name}',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 24),
-                        ),
-                        const Text(
-                          'ELCB Monitoring System',
-                          style: TextStyle(color: AppColors.textBody),
-                        ),
-                        const SizedBox(height: 40),
-                        
-                        Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ZoomIn(
-                                duration: const Duration(seconds: 1),
-                                child: Container(
-                                  width: 220,
-                                  height: 220,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.surface,
-                                    border: Border.all(
-                                      color: statusColor.withValues(alpha: 0.5),
-                                      width: 4,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: statusColor.withValues(alpha: 0.3),
-                                        blurRadius: 40,
-                                        spreadRadius: 10,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        isTripped ? Icons.warning_rounded : Icons.check_circle_rounded,
-                                        size: 80,
-                                        color: statusColor,
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        status.toUpperCase(),
-                                        style: TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: statusColor,
-                                          letterSpacing: 2,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 60),
-                              
-                              FadeInUp(
-                                child: InfoCard(
-                                  icon: Icons.timer_outlined,
-                                  title: 'Last Updated',
-                                  value: DateFormat('hh:mm:ss a').format(DateTime.now()),
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              FadeInUp(
-                                delay: const Duration(milliseconds: 200),
-                                child: const InfoCard(
-                                  icon: Icons.wifi,
-                                  title: 'Sensor Status',
-                                  value: 'Connected (ESP32)',
-                                ),
-                              ),
-                            ],
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Text(
+                          'ELCB Monitor',
+                          style: GoogleFonts.outfit(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 1,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 60),
+                      
+                      Center(
+                        child: Column(
+                          children: [
+                            const StatusOrbModule(),
+                            const SizedBox(height: 56),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'SYSTEM STATUS: ',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                Text(
+                                  status.toUpperCase(),
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    color: statusColor,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              isTripped ? 'Danger: Leakage Detected' : 'Current Leakage: 2mA (Very Low)',
+                              style: TextStyle(
+                                color: isTripped ? Colors.redAccent.withValues(alpha: 0.9) : AppColors.primary.withValues(alpha: 0.9),
+                                fontSize: 13,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 120), // Spacer for bottom nav
+                    ],
                   ),
                 ),
-              ],
+              ),
             );
           },
         );
@@ -177,46 +314,136 @@ class StatusView extends StatelessWidget {
   }
 }
 
-class InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String value;
-
-  const InfoCard({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.value,
-  });
+class StatusOrbModule extends StatelessWidget {
+  const StatusOrbModule({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+    return ZoomIn(
+      child: SizedBox(
+        width: 260,
+        height: 260,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Extra Outer Glow
+            Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    blurRadius: 80,
+                    spreadRadius: 20,
+                  ),
+                ],
+              ),
             ),
-            child: Icon(icon, color: AppColors.primary),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(color: AppColors.textBody, fontSize: 14)),
-              Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ],
+            
+            // Outer Most Arc (Static)
+            Container(
+              width: 250,
+              height: 250,
+              padding: const EdgeInsets.all(10),
+              child: CircularProgressIndicator(
+                value: 0.6,
+                strokeWidth: 2,
+                color: Colors.white.withValues(alpha: 0.1),
+                strokeCap: StrokeCap.round,
+              ),
+            ),
+
+            // Middle Arc (Glowing)
+            Container(
+              width: 210,
+              height: 210,
+              padding: const EdgeInsets.all(10),
+              child: CircularProgressIndicator(
+                value: 0.4,
+                strokeWidth: 3,
+                color: AppColors.primary.withValues(alpha: 0.4),
+                strokeCap: StrokeCap.round,
+              ),
+            ),
+
+            // Main Progress Arc
+            Container(
+              width: 170,
+              height: 170,
+              padding: const EdgeInsets.all(10),
+              child: const CircularProgressIndicator(
+                value: 0.85,
+                strokeWidth: 6,
+                color: AppColors.primary,
+                strokeCap: StrokeCap.round,
+              ),
+            ),
+
+            // The Inner Glass Glass Sphere
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.white.withValues(alpha: 0.1),
+                    Colors.transparent,
+                  ],
+                  center: const Alignment(-0.3, -0.3),
+                  radius: 0.8,
+                ),
+              ),
+            ),
+
+            // Inner Glowing Sphere
+            Container(
+              width: 90,
+              height: 90,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withValues(alpha: 0.3),
+                    const Color(0xFF0F172A),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.6),
+                    blurRadius: 30,
+                    spreadRadius: 2,
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    blurRadius: 10,
+                    offset: const Offset(-5, -5),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 48),
+            ),
+
+            // Floating indicator dot
+            Positioned(
+              top: 45,
+              left: 65,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Colors.white, blurRadius: 10, spreadRadius: 2)],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -229,51 +456,55 @@ class LogsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final FirebaseService firebaseService = FirebaseService();
     
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Trip History', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-            const Text('Previous records of ELCB trips', style: TextStyle(color: AppColors.textBody)),
-            const SizedBox(height: 24),
-            Expanded(
-              child: StreamBuilder<List<TripLog>>(
-                stream: firebaseService.tripLogsStream,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  
-                  final logs = snapshot.data ?? [];
-                  
-                  if (logs.isEmpty) {
-                    return const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.history_toggle_off_rounded, size: 80, color: Colors.white10),
-                          SizedBox(height: 16),
-                          Text('No trip events recorded', style: TextStyle(color: AppColors.textBody)),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    itemCount: logs.length,
-                    itemBuilder: (context, index) {
-                      return FadeInLeft(
-                        delay: Duration(milliseconds: (index < 10 ? index * 80 : 0)), // Limit delay for many items
-                        child: LogEntryCard(log: logs[index]),
+    return Container(
+      color: const Color(0xFF0F172A),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Trip History', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              const Text('Detailed logs of all ELCB events', style: TextStyle(color: AppColors.textBody)),
+              const SizedBox(height: 24),
+              Expanded(
+                child: StreamBuilder<List<TripLog>>(
+                  stream: firebaseService.tripLogsStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    
+                    final logs = snapshot.data ?? [];
+                    
+                    if (logs.isEmpty) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.history_toggle_off_rounded, size: 80, color: Colors.white10),
+                            SizedBox(height: 16),
+                            Text('No trip events recorded', style: TextStyle(color: AppColors.textBody)),
+                          ],
+                        ),
                       );
-                    },
-                  );
-                },
+                    }
+
+                    return ListView.builder(
+                      itemCount: logs.length,
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemBuilder: (context, index) {
+                        return FadeInLeft(
+                          delay: Duration(milliseconds: index * 100),
+                          child: LogEntryCard(log: logs[index]),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -291,18 +522,18 @@ class LogEntryCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppColors.statusTripped.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.flash_on_rounded, color: AppColors.statusTripped, size: 24),
+            child: const Icon(Icons.warning_amber_rounded, color: AppColors.statusTripped, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -311,16 +542,16 @@ class LogEntryCard extends StatelessWidget {
               children: [
                 Text(
                   DateFormat('EEEE, MMM d, yyyy').format(log.timestamp),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 Text(
-                  DateFormat('hh:mm:ss a').format(log.timestamp),
+                  DateFormat('hh:mm a').format(log.timestamp),
                   style: const TextStyle(color: AppColors.textBody, fontSize: 13),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.textBody),
+          const Icon(Icons.info_outline_rounded, color: AppColors.textBody),
         ],
       ),
     );
@@ -397,55 +628,63 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
+    return Container(
+      color: const Color(0xFF0F172A),
+      child: SafeArea(
+        child: SingleChildScrollView( // RESTORED SCROLLING TO FIX OVERFLOW
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Profile', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-                  IconButton(
-                    onPressed: () => _firebaseService.logout(),
-                    icon: const Icon(Icons.logout_rounded, color: AppColors.statusTripped),
-                    tooltip: 'Logout',
-                  ),
-                ],
-              ),
-              const Text('Your electricity connection details', style: TextStyle(color: AppColors.textBody)),
-              const SizedBox(height: 32),
-              
-              const ProfileAvatar(),
-              const SizedBox(height: 32),
-              
-              ProfileField(label: 'Full Name', icon: Icons.person_outline, controller: _nameController),
-              ProfileField(label: 'Phone Number', icon: Icons.phone_outlined, controller: _phoneController),
-              ProfileField(label: 'Address', icon: Icons.location_on_outlined, controller: _addressController, maxLines: 3),
-              ProfileField(label: 'Consumer Number', icon: Icons.receipt_long_outlined, controller: _consumerController),
-              
-              const SizedBox(height: 40),
-              
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _saveProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: const Text('SAVE PROFILE', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+              Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Settings', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                        IconButton(
+                          onPressed: () => _firebaseService.logout(),
+                          icon: const Icon(Icons.logout_rounded, color: AppColors.statusTripped),
+                          tooltip: 'Logout',
+                        ),
+                      ],
+                    ),
+                    const Text('Subscription and Account Details', style: TextStyle(color: AppColors.textBody)),
+                    const SizedBox(height: 32),
+                    
+                    const ProfileAvatar(),
+                    const SizedBox(height: 32),
+                    
+                    ProfileField(label: 'Full Name', icon: Icons.person_outline, controller: _nameController),
+                    ProfileField(label: 'Phone Number', icon: Icons.phone_outlined, controller: _phoneController),
+                    ProfileField(label: 'Address', icon: Icons.location_on_outlined, controller: _addressController, maxLines: 2),
+                    ProfileField(label: 'Consumer Number', icon: Icons.receipt_long_outlined, controller: _consumerController),
+                    
+                    const SizedBox(height: 40),
+                    
+                    SizedBox(
+                      width: double.infinity,
+                      height: 60,
+                      child: ElevatedButton(
+                        onPressed: _saveProfile,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          elevation: 10,
+                          shadowColor: AppColors.primary.withValues(alpha: 0.3),
+                        ),
+                        child: const Text('SAVE SETTINGS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const _ResetDatabaseButton(),
+                    const SizedBox(height: 100), // Space for bottom nav
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-              
-              const _ResetDatabaseButton(),
-              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -471,7 +710,7 @@ class _ResetDatabaseButton extends StatelessWidget {
           }
         },
         icon: const Icon(Icons.refresh_rounded, color: AppColors.statusTripped),
-        label: const Text('RESET DATABASE STRUCTURE', style: TextStyle(color: AppColors.statusTripped)),
+        label: const Text('RESET SYSTEM DATA', style: TextStyle(color: AppColors.statusTripped)),
       ),
     );
   }
@@ -490,7 +729,7 @@ class ProfileAvatar extends StatelessWidget {
             height: 100,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              gradient: AppColors.primaryGradient,
+              color: Color(0xFF6366F1), // Reference blue
             ),
             child: const Icon(Icons.person, size: 60, color: Colors.white),
           ),
@@ -499,7 +738,7 @@ class ProfileAvatar extends StatelessWidget {
             right: 0,
             child: Container(
               padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
+              decoration: const BoxDecoration(color: Colors.orangeAccent, shape: BoxShape.circle),
               child: const Icon(Icons.edit, size: 18, color: Colors.white),
             ),
           ),
@@ -526,26 +765,28 @@ class ProfileField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.textBody, fontSize: 14)),
+          Text(label, style: const TextStyle(color: AppColors.textBody, fontSize: 13, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           TextFormField(
             controller: controller,
             maxLines: maxLines,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
             decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: AppColors.primary),
+              prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
               filled: true,
               fillColor: AppColors.surface,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                borderRadius: BorderRadius.circular(20),
+                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
               ),
             ),
           ),

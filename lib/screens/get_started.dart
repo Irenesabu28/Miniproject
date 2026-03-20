@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../utils/theme.dart';
 
 class GetStartedPage extends StatelessWidget {
@@ -10,65 +11,70 @@ class GetStartedPage extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Gradient
+          // Background Cinematic Gradient
           Container(
             decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-                center: Alignment.center,
-                radius: 1.5,
+              gradient: LinearGradient(
+                colors: [Color(0xFF0F172A), Color(0xFF020617)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
           ),
           
-          // Floating Elements (Visual Interest)
+          // Large Glowing Orb in background
           Positioned(
-            top: -100,
+            top: -150,
             right: -100,
-            child: FadeInDown(
-              duration: const Duration(seconds: 2),
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                ),
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary.withValues(alpha: 0.05),
               ),
             ),
           ),
 
           SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 60),
+                  const Spacer(),
                   FadeInDown(
+                    duration: const Duration(milliseconds: 1200),
                     child: Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(30),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            blurRadius: 40,
+                            spreadRadius: 5,
+                          ),
+                        ],
                       ),
                       child: const Icon(
                         Icons.bolt_rounded,
-                        size: 100,
+                        size: 80,
                         color: AppColors.primary,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 48),
                   FadeInUp(
                     delay: const Duration(milliseconds: 300),
                     child: Text(
                       'ELCB Monitor',
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: 40,
-                        letterSpacing: 2,
+                      style: GoogleFonts.outfit(
+                        fontSize: 48,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: -1,
                       ),
                     ),
                   ),
@@ -76,39 +82,40 @@ class GetStartedPage extends StatelessWidget {
                   FadeInUp(
                     delay: const Duration(milliseconds: 500),
                     child: Text(
-                      'Stay safe and informed. Real-time tracking of your electrical system status.',
+                      'Automated ELCB protection and real-time leakage monitoring for your safety.',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      style: GoogleFonts.outfit(
                         fontSize: 18,
-                        height: 1.5,
+                        color: AppColors.textBody,
+                        height: 1.4,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 60),
+                  const Spacer(),
                   FadeInUp(
                     delay: const Duration(milliseconds: 800),
                     child: SizedBox(
                       width: double.infinity,
-                      height: 60,
+                      height: 64,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/auth');
+                           Navigator.pushNamed(context, '/auth');
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(24),
                           ),
-                          elevation: 10,
-                          shadowColor: AppColors.primary.withValues(alpha: 0.5),
+                          elevation: 15,
+                          shadowColor: AppColors.primary.withValues(alpha: 0.4),
                         ),
-                        child: const Text(
+                        child: Text(
                           'GET STARTED',
-                          style: TextStyle(
+                          style: GoogleFonts.outfit(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
+                            letterSpacing: 2,
                           ),
                         ),
                       ),
