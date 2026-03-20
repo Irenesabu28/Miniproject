@@ -15,44 +15,42 @@ class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
   factory FirebaseService() => _instance;
   
-  FirebaseService._internal() {
-    try {
-      _db = FirebaseDatabase.instance;
-      _auth = FirebaseAuth.instance;
-      _initialized = true;
-    } catch (e) {
-      debugPrint("Firebase services not available: $e");
-      _initialized = false;
-    }
+  FirebaseService._internal();
+
+  FirebaseDatabase get _getDb {
+    _initialized = true;
+    return _db ??= FirebaseDatabase.instance;
+  }
+  
+  FirebaseAuth get _getAuth {
+    _initialized = true;
+    return _auth ??= FirebaseAuth.instance;
   }
 
   // Authentication Methods
-  User? get currentUser => _auth?.currentUser;
-  Stream<User?> get authStateChanges => _auth?.authStateChanges() ?? const Stream.empty();
+  User? get currentUser => _getAuth.currentUser;
+  Stream<User?> get authStateChanges => _getAuth.authStateChanges();
 
   Future<UserCredential?> signUp(String email, String password) async {
-    if (!_initialized) return null;
-    final creds = await _auth!.createUserWithEmailAndPassword(email: email, password: password);
+    final creds = await _getAuth.createUserWithEmailAndPassword(email: email, password: password);
     if (creds.user != null) {
       // Initialize database structure for new user
       await resetDatabase();
-      await setupFCM();
+      setupFCM(); // Don't await FCM setup to keep UI responsive
     }
     return creds;
   }
 
   Future<UserCredential?> login(String email, String password) async {
-    if (!_initialized) return null;
-    final creds = await _auth!.signInWithEmailAndPassword(email: email, password: password);
+    final creds = await _getAuth.signInWithEmailAndPassword(email: email, password: password);
     if (creds.user != null) {
-      await setupFCM();
+      setupFCM(); // Don't await FCM setup to keep UI responsive
     }
     return creds;
   }
 
   Future<void> logout() async {
-    if (!_initialized) return;
-    await _auth!.signOut();
+    await _getAuth.signOut();
   }
 
   // Scoped Data Paths
@@ -60,27 +58,44 @@ class FirebaseService {
 
   // Listen to current ELCB status
   Stream<String> get statusStream {
-    if (!_initialized || _db == null || _userPath == null) {
-      return Stream.periodic(const Duration(seconds: 5), (i) => i % 10 == 0 ? 'TRIPPED' : 'NORMAL').startWith('NORMAL');
+    if (_userPath == null) {
+      return Stream.periodic(const Duration(seconds: 5), (i) => i % 10 == 0 ? 'TRIPPED' : 'NORMAL')
+          .startWith('NORMAL')
+          .distinct();
     }
-    return _db!.ref('$_userPath/ELCB_SYSTEM/status').onValue.map((event) {
+    return _getDb.ref('$_userPath/ELCB_SYSTEM/status').onValue.map((event) {
       return event.snapshot.value?.toString() ?? 'NORMAL';
-    });
+    }).distinct();
+  }
+
+  // Get reactive profile updates
+  Stream<UserModel> get profileStream {
+    if (_userPath == null) {
+      return Stream.value(const UserModel());
+    }
+    return _getDb.ref('$_userPath/profile').onValue.map((event) {
+      if (event.snapshot.exists) {
+        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        return UserModel.fromJson(data);
+      }
+      return const UserModel();
+    }).distinct();
   }
 
   // Get Trip Logs
   Stream<List<TripLog>> get tripLogsStream {
-    if (!_initialized || _db == null || _userPath == null) {
+    if (_userPath == null) {
       return Stream.value([
         TripLog(timestamp: DateTime.now().subtract(const Duration(days: 1)), isTripped: true, description: "TRIPPED"),
       ]);
     }
-    return _db!.ref('$_userPath/logs').onValue.map((event) {
+    return _getDb.ref('$_userPath/logs').onValue.map((event) {
       final List<TripLog> logs = [];
       final data = event.snapshot.value as Map<dynamic, dynamic>?;
       
       if (data != null) {
         data.forEach((key, value) {
+          if (key == 'init') return; 
           final logMap = value as Map<dynamic, dynamic>;
           final dateStr = logMap['date'] ?? '';
           final timeStr = logMap['time'] ?? '';
@@ -100,25 +115,20 @@ class FirebaseService {
         });
         logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       }
-      return logs;
-    });
+      return List<TripLog>.unmodifiable(logs);
+    }).distinct(listEquals);
   }
 
   // Save/Update Profile
   Future<void> saveProfile(UserModel user) async {
-    if (!_initialized || _db == null || _userPath == null) {
-      debugPrint("Firebase not initialized or user not logged in.");
-      return;
-    }
-    await _db!.ref('$_userPath/profile').set(user.toJson());
+    if (_userPath == null) return;
+    await _getDb.ref('$_userPath/profile').set(user.toJson());
   }
 
   // Get Profile
   Future<UserModel?> getProfile() async {
-    if (!_initialized || _db == null || _userPath == null) {
-      return UserModel();
-    }
-    final snapshot = await _db!.ref('$_userPath/profile').get();
+    if (_userPath == null) return UserModel();
+    final snapshot = await _getDb.ref('$_userPath/profile').get();
     if (snapshot.exists) {
       final data = Map<String, dynamic>.from(snapshot.value as Map);
       return UserModel.fromJson(data);
@@ -128,13 +138,13 @@ class FirebaseService {
 
   // Reset and Initialize Database
   Future<void> resetDatabase() async {
-    if (!_initialized || _db == null || _userPath == null) return;
+    if (_userPath == null) return;
     
     final now = DateTime.now();
     final dateStr = "${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}";
     final timeStr = "${now.hour.toString().padLeft(2,'0')}:${now.minute.toString().padLeft(2,'0')}";
 
-    await _db!.ref(_userPath).set({
+    await _getDb.ref(_userPath).set({
       "ELCB_SYSTEM": {
         "status": "NORMAL",
         "last_updated": "$dateStr $timeStr"
@@ -152,45 +162,47 @@ class FirebaseService {
 
   // FCM Setup
   Future<void> setupFCM() async {
-    if (!_initialized) return;
+    try {
+      if (kIsWeb) return; // Skip mobile-specific FCM setup for web if needed, or handle separately
 
-    // Initialize Local Notifications for Foreground Alerts
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
-    await _localNotifications.initialize(initializationSettings);
+      // Initialize Local Notifications for Foreground Alerts
+      const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+      await _localNotifications.initialize(initializationSettings);
 
-    FirebaseMessaging messaging = FirebaseMessaging.instance;
+      FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-    // Request permission for push notifications
-    NotificationSettings settings = await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+      // Request permission for push notifications
+      NotificationSettings settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
 
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      debugPrint('User granted permission');
-      
-      // Get the token for this device
-      String? token = await messaging.getToken();
-      debugPrint("FCM Token: $token");
-      
-      // Save token for push notifications (consistent with your desired path structure)
-      if (token != null && _userPath != null) {
-        await _db!.ref('$_userPath/fcm_token').set(token);
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        debugPrint('User granted permission');
+        
+        // Get the token for this device
+        String? token = await messaging.getToken();
+        debugPrint("FCM Token: $token");
+        
+        // Save token for push notifications
+        if (token != null && _userPath != null) {
+          await _getDb.ref('$_userPath/fcm_token').set(token);
+        }
+        
+        // Listen for foreground status changes
+        _setupLocalAlerts();
       }
-      
-      // Listen for foreground status changes to show local alerts
-      _setupLocalAlerts();
-    } else {
-      debugPrint('User declined or has not accepted permission');
+    } catch (e) {
+      debugPrint("FCM initialization failed: $e");
     }
   }
 
   void _setupLocalAlerts() {
-    if (_userPath == null || _db == null) return;
+    if (_userPath == null) return;
 
-    _db!.ref('$_userPath/ELCB_SYSTEM/status').onValue.listen((event) {
+    _getDb.ref('$_userPath/ELCB_SYSTEM/status').onValue.listen((event) {
       final status = event.snapshot.value?.toString() ?? 'NORMAL';
       if (status == "TRIPPED") {
         _showLocalNotification();

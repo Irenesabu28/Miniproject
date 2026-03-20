@@ -39,12 +39,13 @@ class GetStartedPage extends StatelessWidget {
           ),
 
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30.0),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 20),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Spacer(),
+                  const SizedBox(height: 60),
                   FadeInDown(
                     child: Container(
                       padding: const EdgeInsets.all(20),
@@ -83,7 +84,7 @@ class GetStartedPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 60),
                   FadeInUp(
                     delay: const Duration(milliseconds: 800),
                     child: SizedBox(
