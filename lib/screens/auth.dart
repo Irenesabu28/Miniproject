@@ -36,15 +36,11 @@ class _AuthPageState extends State<AuthPage> {
     final password = _passwordController.text.trim();
     
     try {
-      // Step 1: Try to login
       try {
         await _firebaseService.login(email, password);
       } on FirebaseAuthException catch (e) {
-        // Step 2: If user not found, automatically try to create an account
+        // Sign up if user not found (backward compatibility or unique UX)
         if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
-          // Note: In newer Firebase versions, 'invalid-credential' is often used for both
-          // For security, some systems don't distinguish. 
-          // But here we try to sign up if login fails.
           await _firebaseService.signUp(email, password);
         } else {
           rethrow;
@@ -52,25 +48,29 @@ class _AuthPageState extends State<AuthPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      String message = 'Authentication failed';
-      if (e is FirebaseAuthException) {
-        if (e.code == 'wrong-password') message = 'Incorrect password';
-        else if (e.code == 'invalid-email') message = 'Invalid email address';
-        else if (e.code == 'email-already-in-use') message = 'Email already in use';
-        else message = e.message ?? message;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: AppColors.statusTripped,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      _showError(e);
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showError(dynamic e) {
+    String message = 'Authentication failed';
+    if (e is FirebaseAuthException) {
+      message = switch (e.code) {
+        'wrong-password' => 'Incorrect password',
+        'invalid-email' => 'Invalid email address',
+        'email-already-in-use' => 'Email already in use',
+        _ => e.message ?? message,
+      };
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.statusTripped,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -78,33 +78,8 @@ class _AuthPageState extends State<AuthPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // Premium Background Gradient from GetStarted
-          Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-                center: Alignment.center,
-                radius: 1.5,
-              ),
-            ),
-          ),
-          
-          // Floating Elements
-          Positioned(
-            top: -50,
-            right: -50,
-            child: FadeInDown(
-              child: Container(
-                width: 250,
-                height: 250,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                ),
-              ),
-            ),
-          ),
-
+          const _AuthBackground(),
+          const _FloatingCircle(),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -114,41 +89,10 @@ class _AuthPageState extends State<AuthPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      FadeInDown(
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                          ),
-                          child: const Icon(
-                            Icons.bolt_rounded,
-                            size: 64,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
+                      const _AuthIcon(),
                       const SizedBox(height: 32),
-                      FadeInUp(
-                        child: Text(
-                          'ELCB Monitor',
-                          style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                            fontSize: 32,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      FadeInUp(
-                        delay: const Duration(milliseconds: 200),
-                        child: const Text(
-                          'Enter details to continue',
-                          style: TextStyle(color: AppColors.textBody, fontSize: 16),
-                        ),
-                      ),
+                      const _AuthHeader(),
                       const SizedBox(height: 48),
-                      
                       FadeInUp(
                         delay: const Duration(milliseconds: 400),
                         child: AuthTextField(
@@ -176,45 +120,16 @@ class _AuthPageState extends State<AuthPage> {
                           ),
                         ),
                       ),
-                      
                       const SizedBox(height: 40),
-                      
                       FadeInUp(
                         delay: const Duration(milliseconds: 800),
-                        child: SizedBox(
-                          width: double.infinity,
-                          height: 60,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _submit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                              elevation: 10,
-                              shadowColor: AppColors.primary.withValues(alpha: 0.4),
-                            ),
-                            child: _isLoading 
-                              ? const SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                )
-                              : const Text(
-                                  'CONTINUE',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5),
-                                ),
-                          ),
+                        child: _SubmitButton(
+                          isLoading: _isLoading,
+                          onPressed: _submit,
                         ),
                       ),
-                      
                       const SizedBox(height: 24),
-                      FadeInUp(
-                        delay: const Duration(milliseconds: 1000),
-                        child: const Text(
-                          'New users will be registered automatically',
-                          style: TextStyle(color: AppColors.textBody, fontSize: 12),
-                        ),
-                      ),
+                      const _AuthFooter(),
                     ],
                   ),
                 ),
@@ -222,6 +137,147 @@ class _AuthPageState extends State<AuthPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AuthBackground extends StatelessWidget {
+  const _AuthBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+          center: Alignment.center,
+          radius: 1.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _FloatingCircle extends StatelessWidget {
+  const _FloatingCircle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: -50,
+      right: -50,
+      child: FadeInDown(
+        child: Container(
+          width: 250,
+          height: 250,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.primary.withValues(alpha: 0.1),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AuthIcon extends StatelessWidget {
+  const _AuthIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeInDown(
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: const Icon(
+          Icons.bolt_rounded,
+          size: 64,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+}
+
+class _AuthHeader extends StatelessWidget {
+  const _AuthHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        FadeInUp(
+          child: Text(
+            'ELCB Monitor',
+            style: Theme.of(context).textTheme.displayLarge?.copyWith(
+              fontSize: 32,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        FadeInUp(
+          delay: const Duration(milliseconds: 200),
+          child: const Text(
+            'Enter details to continue',
+            style: TextStyle(color: AppColors.textBody, fontSize: 16),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SubmitButton extends StatelessWidget {
+  final bool isLoading;
+  final VoidCallback onPressed;
+
+  const _SubmitButton({required this.isLoading, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 60,
+      child: ElevatedButton(
+        onPressed: isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          elevation: 10,
+          shadowColor: AppColors.primary.withValues(alpha: 0.4),
+        ),
+        child: isLoading 
+          ? const SizedBox(
+              height: 24,
+              width: 24,
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+            )
+          : const Text(
+              'CONTINUE',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+            ),
+      ),
+    );
+  }
+}
+
+class _AuthFooter extends StatelessWidget {
+  const _AuthFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeInUp(
+      delay: const Duration(milliseconds: 1000),
+      child: const Text(
+        'New users will be registered automatically',
+        style: TextStyle(color: AppColors.textBody, fontSize: 12),
       ),
     );
   }
@@ -252,7 +308,10 @@ class AuthTextField extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(label, style: const TextStyle(color: AppColors.textBody, fontSize: 14, fontWeight: FontWeight.w500)),
+          child: Text(
+            label, 
+            style: const TextStyle(color: AppColors.textBody, fontSize: 14, fontWeight: FontWeight.w500)
+          ),
         ),
         TextFormField(
           controller: controller,

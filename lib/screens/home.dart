@@ -56,116 +56,121 @@ class StatusView extends StatelessWidget {
     
     return StreamBuilder<String>(
       stream: firebaseService.statusStream,
-      builder: (context, snapshot) {
-        final status = snapshot.data ?? 'NORMAL';
-        final isTripped = status.toUpperCase() == 'TRIPPED';
-        final statusColor = isTripped ? AppColors.statusTripped : AppColors.statusStable;
+      builder: (context, statusSnapshot) {
+        return StreamBuilder<UserModel>(
+          stream: firebaseService.profileStream,
+          builder: (context, userSnapshot) {
+            final user = userSnapshot.data ?? const UserModel();
+            final status = statusSnapshot.data ?? 'NORMAL';
+            final isTripped = status.toUpperCase() == 'TRIPPED';
+            final statusColor = isTripped ? AppColors.statusTripped : AppColors.statusStable;
 
-        return Stack(
-          children: [
-            Positioned(
-              top: -50,
-              left: -50,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: statusColor.withValues(alpha: 0.1),
+            return Stack(
+              children: [
+                Positioned(
+                  top: -50,
+                  left: -50,
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: statusColor.withValues(alpha: 0.1),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hello, Irene',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 24),
-                    ),
-                    const Text(
-                      'ELCB Monitoring System',
-                      style: TextStyle(color: AppColors.textBody),
-                    ),
-                    const SizedBox(height: 40),
-                    
-                    Expanded(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ZoomIn(
-                              duration: const Duration(seconds: 1),
-                              child: Container(
-                                width: 220,
-                                height: 220,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.surface,
-                                  border: Border.all(
-                                    color: statusColor.withValues(alpha: 0.5),
-                                    width: 4,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: statusColor.withValues(alpha: 0.3),
-                                      blurRadius: 40,
-                                      spreadRadius: 10,
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      isTripped ? Icons.warning_rounded : Icons.check_circle_rounded,
-                                      size: 80,
-                                      color: statusColor,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      status.toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: statusColor,
-                                        letterSpacing: 2,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 60),
-                            
-                            FadeInUp(
-                              child: InfoCard(
-                                icon: Icons.timer_outlined,
-                                title: 'Last Updated',
-                                value: DateFormat('hh:mm:ss a').format(DateTime.now()),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            FadeInUp(
-                              delay: const Duration(milliseconds: 200),
-                              child: const InfoCard(
-                                icon: Icons.wifi,
-                                title: 'Sensor Status',
-                                value: 'Connected (ESP32)',
-                              ),
-                            ),
-                          ],
+                
+                SafeArea(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hello, ${user.name}',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 24),
                         ),
-                      ),
+                        const Text(
+                          'ELCB Monitoring System',
+                          style: TextStyle(color: AppColors.textBody),
+                        ),
+                        const SizedBox(height: 40),
+                        
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ZoomIn(
+                                duration: const Duration(seconds: 1),
+                                child: Container(
+                                  width: 220,
+                                  height: 220,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.surface,
+                                    border: Border.all(
+                                      color: statusColor.withValues(alpha: 0.5),
+                                      width: 4,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: statusColor.withValues(alpha: 0.3),
+                                        blurRadius: 40,
+                                        spreadRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        isTripped ? Icons.warning_rounded : Icons.check_circle_rounded,
+                                        size: 80,
+                                        color: statusColor,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        status.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: statusColor,
+                                          letterSpacing: 2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 60),
+                              
+                              FadeInUp(
+                                child: InfoCard(
+                                  icon: Icons.timer_outlined,
+                                  title: 'Last Updated',
+                                  value: DateFormat('hh:mm:ss a').format(DateTime.now()),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              FadeInUp(
+                                delay: const Duration(milliseconds: 200),
+                                child: const InfoCard(
+                                  icon: Icons.wifi,
+                                  title: 'Sensor Status',
+                                  value: 'Connected (ESP32)',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
@@ -244,13 +249,13 @@ class LogsPage extends StatelessWidget {
                   final logs = snapshot.data ?? [];
                   
                   if (logs.isEmpty) {
-                    return Center(
+                    return const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.history_toggle_off_rounded, size: 80, color: Colors.white.withValues(alpha: 0.1)),
-                          const SizedBox(height: 16),
-                          const Text('No trip events recorded', style: TextStyle(color: AppColors.textBody)),
+                          Icon(Icons.history_toggle_off_rounded, size: 80, color: Colors.white10),
+                          SizedBox(height: 16),
+                          Text('No trip events recorded', style: TextStyle(color: AppColors.textBody)),
                         ],
                       ),
                     );
@@ -259,10 +264,9 @@ class LogsPage extends StatelessWidget {
                   return ListView.builder(
                     itemCount: logs.length,
                     itemBuilder: (context, index) {
-                      final log = logs[index];
                       return FadeInLeft(
-                        delay: Duration(milliseconds: index * 100),
-                        child: LogEntryCard(log: log),
+                        delay: Duration(milliseconds: (index < 10 ? index * 80 : 0)), // Limit delay for many items
+                        child: LogEntryCard(log: logs[index]),
                       );
                     },
                   );
@@ -372,6 +376,25 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    final updatedUser = UserModel(
+      name: _nameController.text,
+      phone: _phoneController.text,
+      address: _addressController.text,
+      consumerNumber: _consumerController.text,
+    );
+    
+    await _firebaseService.saveProfile(updatedUser);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully!')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -410,21 +433,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      final updatedUser = UserModel(
-                        name: _nameController.text,
-                        phone: _phoneController.text,
-                        address: _addressController.text,
-                        consumerNumber: _consumerController.text,
-                      );
-                      await _firebaseService.saveProfile(updatedUser);
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Profile updated successfully!')),
-                      );
-                    }
-                  },
+                  onPressed: _saveProfile,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -435,24 +444,34 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const SizedBox(height: 20),
               
-              SizedBox(
-                width: double.infinity,
-                child: TextButton.icon(
-                  onPressed: () async {
-                    await _firebaseService.resetDatabase();
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Database has been reset and initialized!')),
-                    );
-                  },
-                  icon: const Icon(Icons.refresh_rounded, color: AppColors.statusTripped),
-                  label: const Text('RESET DATABASE STRUCTURE', style: TextStyle(color: AppColors.statusTripped)),
-                ),
-              ),
+              const _ResetDatabaseButton(),
               const SizedBox(height: 40),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ResetDatabaseButton extends StatelessWidget {
+  const _ResetDatabaseButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: TextButton.icon(
+        onPressed: () async {
+          await FirebaseService().resetDatabase();
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Database has been reset and initialized!')),
+            );
+          }
+        },
+        icon: const Icon(Icons.refresh_rounded, color: AppColors.statusTripped),
+        label: const Text('RESET DATABASE STRUCTURE', style: TextStyle(color: AppColors.statusTripped)),
       ),
     );
   }
