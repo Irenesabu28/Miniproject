@@ -53,59 +53,67 @@ class CustomBottomNavBar extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       height: 75,
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(35),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(35),
-        child: BackdropFilter(
-          filter: ColorFilter.mode(Colors.black.withValues(alpha: 0.1), BlendMode.dstIn),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _NavBarItem(
-                    icon: Icons.grid_view_rounded,
-                    label: 'Dashboard',
-                    isActive: currentIndex == 0,
-                    onTap: () => onTap(0),
-                  ),
-                  const SizedBox(width: 50), // Space for centered item
-                  _NavBarItem(
-                    icon: Icons.settings_outlined,
-                    label: 'Settings',
-                    isActive: currentIndex == 2,
-                    onTap: () => onTap(2),
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          // Background Bar with Backdrop Filter
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A).withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(35),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
                 ],
               ),
-              Positioned(
-                top: -30,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: _NavBarCenterItem(
-                    icon: Icons.bolt_rounded,
-                    label: 'Trips',
-                    isActive: currentIndex == 1,
-                    onTap: () => onTap(1),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(35),
+                child: BackdropFilter(
+                  filter: ColorFilter.mode(Colors.black.withValues(alpha: 0.1), BlendMode.dstIn),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _NavBarItem(
+                        icon: Icons.grid_view_rounded,
+                        label: 'Dashboard',
+                        isActive: currentIndex == 0,
+                        onTap: () => onTap(0),
+                      ),
+                      const SizedBox(width: 50), // Space for centered item
+                      _NavBarItem(
+                        icon: Icons.settings_outlined,
+                        label: 'Settings',
+                        isActive: currentIndex == 2,
+                        onTap: () => onTap(2),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+          
+          // Floating Center Item (Trips Icon) - Outside the ClipRRect
+          Positioned(
+            top: -30,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: _NavBarCenterItem(
+                icon: Icons.bolt_rounded,
+                label: 'Trips',
+                isActive: currentIndex == 1,
+                onTap: () => onTap(1),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -228,173 +236,266 @@ class StatusView extends StatelessWidget {
   Widget build(BuildContext context) {
     final FirebaseService firebaseService = FirebaseService();
     
-    return StreamBuilder<String>(
-      stream: firebaseService.statusStream,
-      builder: (context, statusSnapshot) {
-        return StreamBuilder<UserModel>(
-          stream: firebaseService.profileStream,
-          builder: (context, userSnapshot) {
-            final user = userSnapshot.data ?? const UserModel();
-            final status = statusSnapshot.data ?? 'NORMAL';
-            final isTripped = status.toUpperCase() == 'TRIPPED';
-            final statusColor = isTripped ? AppColors.statusTripped : AppColors.statusStable;
+    return StreamBuilder<bool>(
+      stream: firebaseService.hasDevicesStream,
+      builder: (context, hasDevicesSnapshot) {
+        final hasDevices = hasDevicesSnapshot.data ?? true;
 
-            return Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF0F172A), Color(0xFF020617)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'VoltGuard',
-                              style: GoogleFonts.outfit(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withValues(alpha: 0.05),
-                              ),
-                              child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 48),
-                      
-                      Center(
-                        child: Column(
-                          children: [
-                            const StatusOrbModule(),
-                            const SizedBox(height: 56),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+        return StreamBuilder<String>(
+          stream: firebaseService.statusStream,
+          builder: (context, statusSnapshot) {
+            return StreamBuilder<UserModel>(
+              stream: firebaseService.profileStream,
+              builder: (context, userSnapshot) {
+                final user = userSnapshot.data ?? const UserModel();
+                final status = statusSnapshot.data ?? 'NORMAL';
+                final isTripped = status.toUpperCase() == 'TRIPPED';
+                final statusColor = isTripped ? AppColors.statusTripped : AppColors.statusStable;
+
+                return Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0F172A), Color(0xFF020617)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                  child: SafeArea(
+                    bottom: false,
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'SYSTEM STATUS: ',
+                                  'VoltGuard',
                                   style: GoogleFonts.outfit(
-                                    fontSize: 20,
+                                    fontSize: 24,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
-                                    letterSpacing: 0.5,
+                                    letterSpacing: -0.5,
                                   ),
                                 ),
-                                Text(
-                                  status.toUpperCase() == 'NORMAL' ? 'SECURE' : status.toUpperCase(),
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w900,
-                                    color: statusColor,
-                                    letterSpacing: 1,
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withValues(alpha: 0.05),
                                   ),
+                                  child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              isTripped ? 'Danger: Leakage Detected' : 'Current Leakage: 2mA (Very Low)',
-                              style: TextStyle(
-                                color: isTripped ? Colors.redAccent.withValues(alpha: 0.9) : AppColors.primary.withValues(alpha: 0.9),
-                                fontSize: 13,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 48),
-                            
-                            // Small Safety Overview Icon
+                          ),
+                          const SizedBox(height: 48),
+                          
+                          if (!hasDevices)
+                            const _WelcomeView()
+                          else
                             Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.1),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
+                              child: Column(
+                                children: [
+                                  const StatusOrbModule(),
+                                  const SizedBox(height: 56),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'SYSTEM STATUS: ',
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                      Text(
+                                        status.toUpperCase() == 'NORMAL' ? 'SECURE' : status.toUpperCase(),
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                          color: statusColor,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    isTripped ? 'Danger: Leakage Detected' : 'Current Leakage: 2mA (Very Low)',
+                                    style: TextStyle(
+                                      color: isTripped ? Colors.redAccent.withValues(alpha: 0.9) : AppColors.primary.withValues(alpha: 0.9),
+                                      fontSize: 13,
+                                      letterSpacing: 0.5,
                                     ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.shield_rounded, color: AppColors.primary, size: 20),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      "SECURE",
-                                      style: GoogleFonts.outfit(
-                                        color: const Color(0xFF0F172A),
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1,
+                                  ),
+                                  const SizedBox(height: 48),
+                                  
+                                  // Small Safety Overview Icon
+                                  Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.1),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.shield_rounded, color: AppColors.primary, size: 20),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            "SECURE",
+                                            style: GoogleFonts.outfit(
+                                              color: const Color(0xFF0F172A),
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 1,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  
+                                  const SizedBox(height: 32),
+                                  
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _ActionTile(
+                                          label: "LINK NEW\nDEVICE",
+                                          icon: Icons.qr_code_scanner_rounded,
+                                          onTap: () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => const ScanQRPage()),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: _ActionTile(
+                                          label: "CONFIGURE\nDEVICE WIFI",
+                                          icon: Icons.wifi_tethering_rounded,
+                                          onTap: () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => const WifiSetupPage()),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
-                            
-                            const SizedBox(height: 32),
-                            
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _ActionTile(
-                                    label: "LINK NEW\nDEVICE",
-                                    icon: Icons.qr_code_scanner_rounded,
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => const ScanQRPage()),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _ActionTile(
-                                    label: "CONFIGURE\nDEVICE WIFI",
-                                    icon: Icons.wifi_tethering_rounded,
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => const WifiSetupPage()),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                          
+                          const SizedBox(height: 120), // Spacer for bottom nav
+                        ],
                       ),
-                      
-                      const SizedBox(height: 120), // Spacer for bottom nav
-                    ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
         );
       },
+    );
+  }
+}
+
+class _WelcomeView extends StatelessWidget {
+  const _WelcomeView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        FadeInDown(
+          child: Container(
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primary.withValues(alpha: 0.05),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.1), width: 2),
+            ),
+            child: const Icon(Icons.qr_code_scanner_rounded, size: 100, color: AppColors.primary),
+          ),
+        ),
+        const SizedBox(height: 48),
+        FadeInUp(
+          delay: const Duration(milliseconds: 200),
+          child: Text(
+            'Welcome To VoltGuard!',
+            style: GoogleFonts.outfit(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        FadeInUp(
+          delay: const Duration(milliseconds: 400),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Your account is active. To start monitoring your home safety, please link your Smart ELCB device.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                color: AppColors.textBody,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 56),
+        FadeInUp(
+          delay: const Duration(milliseconds: 600),
+          child: SizedBox(
+            width: double.infinity,
+            height: 64,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ScanQRPage()),
+              ),
+              icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
+              label: Text(
+                'LINK DEVICE NOW',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                elevation: 10,
+                shadowColor: AppColors.primary.withValues(alpha: 0.3),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -410,6 +511,7 @@ class StatusOrbModule extends StatelessWidget {
         height: 280,
         child: Stack(
           alignment: Alignment.center,
+          clipBehavior: Clip.none,
           children: [
             // Ultra Outer Glow
             Container(

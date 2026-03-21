@@ -119,6 +119,15 @@ class FirebaseService {
     }).distinct(listEquals);
   }
 
+  // Check if user has any devices linked
+  Stream<bool> get hasDevicesStream {
+    if (_userPath == null) return Stream.value(false);
+    return _getDb.ref('$_userPath/device_ids').onValue.map((event) {
+      final data = event.snapshot.value;
+      return data != null && (data as Map).isNotEmpty;
+    }).distinct();
+  }
+
   // Save/Update Profile
   Future<void> saveProfile(UserModel user) async {
     if (_userPath == null) return;
