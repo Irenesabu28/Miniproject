@@ -191,6 +191,11 @@ class FirebaseService {
           await _getDb.ref('$_userPath/fcm_token').set(token);
         }
         
+        // Handle foreground notifications
+        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+          debugPrint("Notification received: ${message.notification?.title}");
+        });
+        
         // Listen for foreground status changes
         _setupLocalAlerts();
       }

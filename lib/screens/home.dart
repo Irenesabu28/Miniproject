@@ -5,6 +5,8 @@ import '../utils/theme.dart';
 import '../services/firebase_service.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
+import 'scan_qr.dart';
+import 'wifi_setup.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -295,6 +297,45 @@ class StatusView extends StatelessWidget {
                                 color: isTripped ? Colors.redAccent.withValues(alpha: 0.9) : AppColors.primary.withValues(alpha: 0.9),
                                 fontSize: 13,
                                 letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 60),
+                            
+                            FadeInUp(
+                              delay: const Duration(milliseconds: 200),
+                              child: SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: OutlinedButton.icon(
+                                  onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const ScanQRPage()),
+                                  ),
+                                  icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+                                  label: const Text('LINK NEW DEVICE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: AppColors.primary, width: 1.5),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 16),
+                            
+                            FadeInUp(
+                              delay: const Duration(milliseconds: 400),
+                              child: SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: TextButton.icon(
+                                  onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const WifiSetupPage()),
+                                  ),
+                                  icon: const Icon(Icons.wifi_tethering_rounded, color: AppColors.textBody),
+                                  label: const Text('CONFIGURE DEVICE WIFI', style: TextStyle(color: AppColors.textBody)),
+                                ),
                               ),
                             ),
                           ],
