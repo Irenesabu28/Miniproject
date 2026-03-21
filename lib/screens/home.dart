@@ -51,55 +51,61 @@ class CustomBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      height: 70,
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      height: 75,
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        color: const Color(0xFF0F172A).withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(35),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 30,
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 20,
             offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(35),
+        child: BackdropFilter(
+          filter: ColorFilter.mode(Colors.black.withValues(alpha: 0.1), BlendMode.dstIn),
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              _NavBarItem(
-                icon: Icons.dashboard_rounded,
-                label: 'Dashboard',
-                isActive: currentIndex == 0,
-                onTap: () => onTap(0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _NavBarItem(
+                    icon: Icons.grid_view_rounded,
+                    label: 'Dashboard',
+                    isActive: currentIndex == 0,
+                    onTap: () => onTap(0),
+                  ),
+                  const SizedBox(width: 50), // Space for centered item
+                  _NavBarItem(
+                    icon: Icons.settings_outlined,
+                    label: 'Settings',
+                    isActive: currentIndex == 2,
+                    onTap: () => onTap(2),
+                  ),
+                ],
               ),
-              const SizedBox(width: 60), // Space for raised item
-              _NavBarItem(
-                icon: Icons.person_rounded,
-                label: 'Settings',
-                isActive: currentIndex == 2,
-                onTap: () => onTap(2),
+              Positioned(
+                top: -30,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: _NavBarCenterItem(
+                    icon: Icons.bolt_rounded,
+                    label: 'Trips',
+                    isActive: currentIndex == 1,
+                    onTap: () => onTap(1),
+                  ),
+                ),
               ),
             ],
           ),
-          Positioned(
-            top: -25,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: _NavBarCenterItem(
-                icon: Icons.bolt_rounded,
-                label: 'Trips',
-                isActive: currentIndex == 1,
-                onTap: () => onTap(1),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -249,18 +255,32 @@ class StatusView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Center(
-                        child: Text(
-                          'ELCB Monitor',
-                          style: GoogleFonts.outfit(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 1,
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'VoltGuard',
+                              style: GoogleFonts.outfit(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withValues(alpha: 0.05),
+                              ),
+                              child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 60),
+                      const SizedBox(height: 48),
                       
                       Center(
                         child: Column(
@@ -273,16 +293,16 @@ class StatusView extends StatelessWidget {
                                 Text(
                                   'SYSTEM STATUS: ',
                                   style: GoogleFonts.outfit(
-                                    fontSize: 22,
+                                    fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                     letterSpacing: 0.5,
                                   ),
                                 ),
                                 Text(
-                                  status.toUpperCase(),
+                                  status.toUpperCase() == 'NORMAL' ? 'SECURE' : status.toUpperCase(),
                                   style: GoogleFonts.outfit(
-                                    fontSize: 22,
+                                    fontSize: 20,
                                     fontWeight: FontWeight.w900,
                                     color: statusColor,
                                     letterSpacing: 1,
@@ -299,44 +319,68 @@ class StatusView extends StatelessWidget {
                                 letterSpacing: 0.5,
                               ),
                             ),
-                            const SizedBox(height: 60),
+                            const SizedBox(height: 48),
                             
-                            FadeInUp(
-                              delay: const Duration(milliseconds: 200),
-                              child: SizedBox(
-                                width: double.infinity,
-                                height: 56,
-                                child: OutlinedButton.icon(
-                                  onPressed: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const ScanQRPage()),
-                                  ),
-                                  icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
-                                  label: const Text('LINK NEW DEVICE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: AppColors.primary, width: 1.5),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                  ),
+                            // Small Safety Overview Icon
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.1),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.shield_rounded, color: AppColors.primary, size: 20),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "SECURE",
+                                      style: GoogleFonts.outfit(
+                                        color: const Color(0xFF0F172A),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                             
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 32),
                             
-                            FadeInUp(
-                              delay: const Duration(milliseconds: 400),
-                              child: SizedBox(
-                                width: double.infinity,
-                                height: 56,
-                                child: TextButton.icon(
-                                  onPressed: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const WifiSetupPage()),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _ActionTile(
+                                    label: "LINK NEW\nDEVICE",
+                                    icon: Icons.qr_code_scanner_rounded,
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => const ScanQRPage()),
+                                    ),
                                   ),
-                                  icon: const Icon(Icons.wifi_tethering_rounded, color: AppColors.textBody),
-                                  label: const Text('CONFIGURE DEVICE WIFI', style: TextStyle(color: AppColors.textBody)),
                                 ),
-                              ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _ActionTile(
+                                    label: "CONFIGURE\nDEVICE WIFI",
+                                    icon: Icons.wifi_tethering_rounded,
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => const WifiSetupPage()),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -362,126 +406,98 @@ class StatusOrbModule extends StatelessWidget {
   Widget build(BuildContext context) {
     return ZoomIn(
       child: SizedBox(
-        width: 260,
-        height: 260,
+        width: 280,
+        height: 280,
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Extra Outer Glow
+            // Ultra Outer Glow
             Container(
-              width: 140,
-              height: 140,
+              width: 160,
+              height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.15),
-                    blurRadius: 80,
-                    spreadRadius: 20,
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 100,
+                    spreadRadius: 30,
                   ),
                 ],
               ),
             ),
             
-            // Outer Most Arc (Static)
-            Container(
-              width: 250,
-              height: 250,
-              padding: const EdgeInsets.all(10),
-              child: CircularProgressIndicator(
-                value: 0.6,
-                strokeWidth: 2,
-                color: Colors.white.withValues(alpha: 0.1),
-                strokeCap: StrokeCap.round,
-              ),
-            ),
-
-            // Middle Arc (Glowing)
-            Container(
-              width: 210,
-              height: 210,
-              padding: const EdgeInsets.all(10),
-              child: CircularProgressIndicator(
-                value: 0.4,
-                strokeWidth: 3,
-                color: AppColors.primary.withValues(alpha: 0.4),
-                strokeCap: StrokeCap.round,
-              ),
-            ),
-
-            // Main Progress Arc
-            Container(
-              width: 170,
-              height: 170,
-              padding: const EdgeInsets.all(10),
-              child: const CircularProgressIndicator(
-                value: 0.85,
-                strokeWidth: 6,
-                color: AppColors.primary,
-                strokeCap: StrokeCap.round,
-              ),
-            ),
-
-            // The Inner Glass Glass Sphere
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: 0.1),
-                    Colors.transparent,
-                  ],
-                  center: const Alignment(-0.3, -0.3),
-                  radius: 0.8,
+            // Neon Outer Ring
+            Spin(
+              duration: const Duration(seconds: 10),
+              infinite: true,
+              child: Container(
+                width: 250,
+                height: 250,
+                child: CircularProgressIndicator(
+                  value: 0.7,
+                  strokeWidth: 2,
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  strokeCap: StrokeCap.round,
                 ),
               ),
             ),
 
-            // Inner Glowing Sphere
+            // Neon Middle Ring
+            Spin(
+              duration: const Duration(seconds: 15),
+              infinite: true,
+              child: Container(
+                width: 210,
+                height: 210,
+                child: CircularProgressIndicator(
+                  value: 0.4,
+                  strokeWidth: 3,
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                  strokeCap: StrokeCap.round,
+                ),
+              ),
+            ),
+
+            // Neon Inner Ring
+            Spin(
+              duration: const Duration(seconds: 5),
+              infinite: true,
+              child: Container(
+                width: 170,
+                height: 170,
+                child: const CircularProgressIndicator(
+                  value: 0.3,
+                  strokeWidth: 5,
+                  color: AppColors.primary,
+                  strokeCap: StrokeCap.round,
+                ),
+              ),
+            ),
+
+            // Final Glowing Core
             Container(
-              width: 90,
-              height: 90,
+              width: 110,
+              height: 110,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
+                    Colors.white.withValues(alpha: 0.8),
                     AppColors.primary,
-                    AppColors.primary.withValues(alpha: 0.3),
-                    const Color(0xFF0F172A),
+                    AppColors.primary.withValues(alpha: 0.2),
+                    Colors.transparent,
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.6),
-                    blurRadius: 30,
-                    spreadRadius: 2,
-                  ),
-                  BoxShadow(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    blurRadius: 10,
-                    offset: const Offset(-5, -5),
+                    color: AppColors.primary.withValues(alpha: 0.8),
+                    blurRadius: 40,
+                    spreadRadius: 10,
                   ),
                 ],
               ),
-              child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 48),
-            ),
-
-            // Floating indicator dot
-            Positioned(
-              top: 45,
-              left: 65,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.white, blurRadius: 10, spreadRadius: 2)],
-                ),
-              ),
+              child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 50),
             ),
           ],
         ),
@@ -489,6 +505,7 @@ class StatusOrbModule extends StatelessWidget {
     );
   }
 }
+
 
 class LogsPage extends StatelessWidget {
   const LogsPage({super.key});
@@ -832,6 +849,63 @@ class ProfileField extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _ActionTile({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 120,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF0F172A),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
