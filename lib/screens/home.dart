@@ -248,7 +248,7 @@ class StatusView extends StatelessWidget {
               stream: firebaseService.profileStream,
               builder: (context, userSnapshot) {
                 final user = userSnapshot.data ?? const UserModel();
-                final status = statusSnapshot.data ?? 'NORMAL';
+                final status = statusSnapshot.data ?? 'STABLE';
                 final isTripped = status.toUpperCase() == 'TRIPPED';
                 final statusColor = isTripped ? AppColors.statusTripped : AppColors.statusStable;
 
@@ -316,7 +316,7 @@ class StatusView extends StatelessWidget {
                                         ),
                                       ),
                                       Text(
-                                        status.toUpperCase() == 'NORMAL' ? 'SECURE' : status.toUpperCase(),
+                                        status.toUpperCase(),
                                         style: GoogleFonts.outfit(
                                           fontSize: 20,
                                           fontWeight: FontWeight.w900,

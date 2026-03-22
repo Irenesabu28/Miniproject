@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
+import 'package:rxdart/rxdart.dart';
 import '../models/models.dart';
 
 class FirebaseService {
@@ -59,12 +60,20 @@ class FirebaseService {
   // Listen to current ELCB status
   Stream<String> get statusStream {
     if (_userPath == null) {
-      return Stream.periodic(const Duration(seconds: 5), (i) => i % 10 == 0 ? 'TRIPPED' : 'NORMAL')
-          .startWith('NORMAL')
+      return Stream.periodic(const Duration(seconds: 5), (i) => i % 10 == 0 ? 'TRIPPED' : 'STABLE')
+          .startWith('STABLE')
           .distinct();
     }
-    return _getDb.ref('$_userPath/ELCB_SYSTEM/status').onValue.map((event) {
-      return event.snapshot.value?.toString() ?? 'NORMAL';
+
+    // First find the device ID, then listen to its status
+    return _getDb.ref('$_userPath/device_ids').onValue.switchMap((event) {
+      final data = event.snapshot.value as Map?;
+      if (data == null || data.isEmpty) {
+        // Fallback to old user-path for backward compatibility or empty state
+        return _getDb.ref('$_userPath/ELCB_SYSTEM/status').onValue.map((e) => e.snapshot.value?.toString() ?? 'STABLE');
+      }
+      final deviceId = data.values.first.toString();
+      return _getDb.ref('devices/$deviceId/status').onValue.map((e) => e.snapshot.value?.toString() ?? 'STABLE');
     }).distinct();
   }
 
@@ -89,33 +98,45 @@ class FirebaseService {
         TripLog(timestamp: DateTime.now().subtract(const Duration(days: 1)), isTripped: true, description: "TRIPPED"),
       ]);
     }
-    return _getDb.ref('$_userPath/logs').onValue.map((event) {
-      final List<TripLog> logs = [];
-      final data = event.snapshot.value as Map<dynamic, dynamic>?;
-      
-      if (data != null) {
-        data.forEach((key, value) {
-          if (key == 'init') return; 
-          final logMap = value as Map<dynamic, dynamic>;
-          final dateStr = logMap['date'] ?? '';
-          final timeStr = logMap['time'] ?? '';
-          
-          DateTime timestamp;
-          try {
-            timestamp = DateTime.parse('$dateStr $timeStr');
-          } catch (e) {
-            timestamp = DateTime.now();
-          }
 
-          logs.add(TripLog(
-            timestamp: timestamp,
-            isTripped: logMap['status'] == 'TRIPPED',
-            description: logMap['status'] ?? 'Unknown',
-          ));
-        });
-        logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return _getDb.ref('$_userPath/device_ids').onValue.switchMap((event) {
+      final data = event.snapshot.value as Map?;
+      String path;
+      if (data == null || data.isEmpty) {
+        path = '$_userPath/logs';
+      } else {
+        final deviceId = data.values.first.toString();
+        path = 'devices/$deviceId/logs';
       }
-      return List<TripLog>.unmodifiable(logs);
+
+      return _getDb.ref(path).onValue.map((event) {
+        final List<TripLog> logs = [];
+        final data = event.snapshot.value as Map<dynamic, dynamic>?;
+        
+        if (data != null) {
+          data.forEach((key, value) {
+            if (key == 'init') return; 
+            final logMap = value as Map<dynamic, dynamic>;
+            final dateStr = logMap['date'] ?? '';
+            final timeStr = logMap['time'] ?? '';
+            
+            DateTime timestamp;
+            try {
+              timestamp = DateTime.parse('$dateStr $timeStr');
+            } catch (e) {
+              timestamp = DateTime.now();
+            }
+
+            logs.add(TripLog(
+              timestamp: timestamp,
+              isTripped: logMap['status'] == 'TRIPPED',
+              description: logMap['status'] ?? 'Unknown',
+            ));
+          });
+          logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        }
+        return List<TripLog>.unmodifiable(logs);
+      });
     }).distinct(listEquals);
   }
 
@@ -155,12 +176,12 @@ class FirebaseService {
 
     await _getDb.ref(_userPath).set({
       "ELCB_SYSTEM": {
-        "status": "NORMAL",
+        "status": "STABLE",
         "last_updated": "$dateStr $timeStr"
       },
       "logs": {
         "init": {
-          "status": "NORMAL",
+          "status": "STABLE",
           "date": dateStr,
           "time": timeStr
         }
@@ -216,8 +237,7 @@ class FirebaseService {
   void _setupLocalAlerts() {
     if (_userPath == null) return;
 
-    _getDb.ref('$_userPath/ELCB_SYSTEM/status').onValue.listen((event) {
-      final status = event.snapshot.value?.toString() ?? 'NORMAL';
+    statusStream.listen((status) {
       if (status == "TRIPPED") {
         _showLocalNotification();
       }
@@ -243,10 +263,4 @@ class FirebaseService {
   }
 }
 
-// Extension to add startWith to Stream
-extension StreamExtension<T> on Stream<T> {
-  Stream<T> startWith(T value) async* {
-    yield value;
-    yield* this;
-  }
-}
+// Extension to add startWith to Stream is removed as we now use rxdart
