@@ -4,12 +4,12 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:rxdart/rxdart.dart';
+import '../main.dart';
 import '../models/models.dart';
 
 class FirebaseService {
   FirebaseDatabase? _db;
   FirebaseAuth? _auth;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
   
   // Singleton pattern
@@ -195,11 +195,7 @@ class FirebaseService {
     try {
       if (kIsWeb) return; // Skip mobile-specific FCM setup for web if needed, or handle separately
 
-      // Initialize Local Notifications for Foreground Alerts
-      const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
-      await _localNotifications.initialize(initializationSettings);
-
+      // Setup FCM for Foreground Alerts
       FirebaseMessaging messaging = FirebaseMessaging.instance;
 
       // Request permission for push notifications
@@ -245,21 +241,7 @@ class FirebaseService {
   }
 
   Future<void> _showLocalNotification() async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'trip_alerts',
-      'Trip Alerts',
-      channelDescription: 'ELCB Trip Detection Alerts',
-      importance: Importance.max,
-      priority: Priority.high,
-      ticker: 'ticker',
-    );
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
-    await _localNotifications.show(
-      0,
-      '⚠️ ELCB ALERT!',
-      'Power trip detected! Please check your ELCB system immediately.',
-      platformChannelSpecifics,
-    );
+    await showTripAlert();
   }
 }
 

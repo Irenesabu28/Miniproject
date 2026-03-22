@@ -1,10 +1,11 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import '../utils/theme.dart';
-import 'dart:async';
+import '../main.dart';
 
 class WifiSetupPage extends StatefulWidget {
   const WifiSetupPage({super.key});
@@ -69,6 +70,16 @@ class _WifiSetupPageState extends State<WifiSetupPage> {
 
       _connection = await BluetoothConnection.toAddress(device.address);
       
+      // Listen for Bluetooth data (e.g., TRIPPED status when WiFi is down)
+      _connection!.input?.listen((data) {
+        String msg = String.fromCharCodes(data);
+        if (msg.contains("TRIPPED")) {
+          showTripAlert();
+        }
+      }).onDone(() {
+        if (mounted) setState(() => _isConnected = false);
+      });
+
       if (context.mounted) Navigator.pop(context); // Close loading dialog
 
       setState(() {
