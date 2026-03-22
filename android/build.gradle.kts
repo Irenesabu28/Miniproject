@@ -30,6 +30,15 @@ subprojects {
             } catch (e: Exception) {
                 // Fail silently if AGP version doesn't support this
             }
+            
+            // Fix lStar and other resource errors by forcing SDK versions
+            (android as com.android.build.gradle.BaseExtension).apply {
+                compileSdkVersion(34)
+                defaultConfig {
+                    targetSdkVersion(34)
+                    minSdkVersion(21)
+                }
+            }
         }
     }
 }
