@@ -33,10 +33,10 @@ subprojects {
             
             // Fix lStar and other resource errors by forcing SDK versions
             (android as com.android.build.gradle.BaseExtension).apply {
-                compileSdkVersion(34)
+                compileSdkVersion(36)
                 defaultConfig {
-                    targetSdkVersion(34)
-                    minSdkVersion(23)
+                    targetSdkVersion(36)
+                    minSdkVersion(24)
                 }
             }
         }

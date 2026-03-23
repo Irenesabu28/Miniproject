@@ -32,11 +32,11 @@ class FirebaseService {
   User? get currentUser => _getAuth.currentUser;
   Stream<User?> get authStateChanges => _getAuth.authStateChanges();
 
-  Future<UserCredential?> signUp(String email, String password) async {
+  Future<UserCredential?> signUp(String email, String password, {String name = '', String phone = ''}) async {
     final creds = await _getAuth.createUserWithEmailAndPassword(email: email, password: password);
     if (creds.user != null) {
       // Initialize database structure for new user
-      await resetDatabase();
+      await resetDatabase(initialProfile: UserModel(name: name, email: email, phone: phone));
       setupFCM(); // Don't await FCM setup to keep UI responsive
     }
     return creds;
@@ -167,7 +167,7 @@ class FirebaseService {
   }
 
   // Reset and Initialize Database
-  Future<void> resetDatabase() async {
+  Future<void> resetDatabase({UserModel? initialProfile}) async {
     if (_userPath == null) return;
     
     final now = DateTime.now();
@@ -186,7 +186,7 @@ class FirebaseService {
           "time": timeStr
         }
       },
-      "profile": UserModel().toJson()
+      "profile": (initialProfile ?? const UserModel()).toJson()
     });
   }
 

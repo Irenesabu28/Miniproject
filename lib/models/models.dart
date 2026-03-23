@@ -6,11 +6,11 @@ class UserModel {
   final String consumerNumber;
 
   const UserModel({
-    this.name = 'Irene',
-    this.email = 'irene@gmail.com',
-    this.phone = '9876543210',
-    this.address = 'Thrissur',
-    this.consumerNumber = '123456789',
+    this.name = '',
+    this.email = '',
+    this.phone = '',
+    this.address = '',
+    this.consumerNumber = '',
   });
 
   UserModel copyWith({

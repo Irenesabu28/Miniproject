@@ -326,66 +326,10 @@ class StatusView extends StatelessWidget {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    isTripped ? 'Danger: Leakage Detected' : 'Current Leakage: 2mA (Very Low)',
-                                    style: TextStyle(
-                                      color: isTripped ? Colors.redAccent.withValues(alpha: 0.9) : AppColors.primary.withValues(alpha: 0.9),
-                                      fontSize: 13,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
                                   const SizedBox(height: 48),
-                                  
-                                  // Small Safety Overview Icon
-                                  Center(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(20),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(alpha: 0.1),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.shield_rounded, color: AppColors.primary, size: 20),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            "SECURE",
-                                            style: GoogleFonts.outfit(
-                                              color: const Color(0xFF0F172A),
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 1,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  
-                                  const SizedBox(height: 32),
                                   
                                   Row(
                                     children: [
-                                      Expanded(
-                                        child: _ActionTile(
-                                          label: "LINK NEW\nDEVICE",
-                                          icon: Icons.qr_code_scanner_rounded,
-                                          onTap: () => Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (context) => const ScanQRPage()),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
                                       Expanded(
                                         child: _ActionTile(
                                           label: "CONFIGURE\nDEVICE WIFI",

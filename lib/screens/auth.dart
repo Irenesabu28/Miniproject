@@ -18,14 +18,19 @@ class _AuthPageState extends State<AuthPage> {
   
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _isLogin = true;
   
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -37,14 +42,15 @@ class _AuthPageState extends State<AuthPage> {
     final password = _passwordController.text.trim();
     
     try {
-      try {
+      if (_isLogin) {
         await _firebaseService.login(email, password);
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
-          await _firebaseService.signUp(email, password);
-        } else {
-          rethrow;
-        }
+      } else {
+        await _firebaseService.signUp(
+          email, 
+          password, 
+          name: _nameController.text.trim(), 
+          phone: _phoneController.text.trim()
+        );
       }
     } catch (e) {
       if (!mounted) return;
@@ -93,6 +99,20 @@ class _AuthPageState extends State<AuthPage> {
                     const SizedBox(height: 48),
                     const _AuthHeader(),
                     const SizedBox(height: 56),
+                    if (!_isLogin) 
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 300),
+                        child: Column(
+                          children: [
+                            AuthTextField(
+                              controller: _nameController,
+                              label: 'Full Name',
+                              icon: Icons.person_outline_rounded,
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
                     FadeInUp(
                       delay: const Duration(milliseconds: 400),
                       child: AuthTextField(
@@ -103,6 +123,21 @@ class _AuthPageState extends State<AuthPage> {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    if (!_isLogin) 
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 300),
+                        child: Column(
+                          children: [
+                            AuthTextField(
+                              controller: _phoneController,
+                              label: 'Phone Number',
+                              icon: Icons.phone_outlined,
+                              keyboardType: TextInputType.phone,
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
                     FadeInUp(
                       delay: const Duration(milliseconds: 600),
                       child: AuthTextField(
@@ -125,7 +160,25 @@ class _AuthPageState extends State<AuthPage> {
                       delay: const Duration(milliseconds: 800),
                       child: _SubmitButton(
                         isLoading: _isLoading,
+                        label: _isLogin ? 'SIGN IN' : 'CREATE ACCOUNT',
                         onPressed: _submit,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    FadeInUp(
+                      delay: const Duration(milliseconds: 900),
+                      child: TextButton(
+                        onPressed: () => setState(() => _isLogin = !_isLogin),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                        ),
+                        child: Text(
+                          _isLogin ? "Need an account? Sign Up" : "Already have an account? Sign In",
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -245,9 +298,14 @@ class _AuthHeader extends StatelessWidget {
 
 class _SubmitButton extends StatelessWidget {
   final bool isLoading;
+  final String label;
   final VoidCallback onPressed;
 
-  const _SubmitButton({required this.isLoading, required this.onPressed});
+  const _SubmitButton({
+    required this.isLoading,
+    required this.label,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -270,7 +328,7 @@ class _SubmitButton extends StatelessWidget {
               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
             )
           : Text(
-              'CONTINUE',
+              label,
               style: GoogleFonts.outfit(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
