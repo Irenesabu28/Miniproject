@@ -59,7 +59,7 @@ exports.sendTripAlert = functions.database
     const message = {
       notification: {
         title: "⚠️ ELCB Alert!",
-        body: "A power trip has been detected on your ELCB monitor.",
+        body: "A power trip has been detected on your CircuGuard.",
       },
       token: token,
     };

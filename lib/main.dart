@@ -63,7 +63,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ELCB Monitor',
+      title: 'CircuGuard',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: StreamBuilder<User?>(

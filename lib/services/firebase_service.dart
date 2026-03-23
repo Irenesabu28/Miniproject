@@ -60,20 +60,21 @@ class FirebaseService {
   // Listen to current ELCB status
   Stream<String> get statusStream {
     if (_userPath == null) {
-      return Stream.periodic(const Duration(seconds: 5), (i) => i % 10 == 0 ? 'TRIPPED' : 'STABLE')
-          .startWith('STABLE')
-          .distinct();
+      return Stream.value('STABLE');
     }
 
     // First find the device ID, then listen to its status
     return _getDb.ref('$_userPath/device_ids').onValue.switchMap((event) {
-      final data = event.snapshot.value as Map?;
-      if (data == null || data.isEmpty) {
+      final data = event.snapshot.value;
+      if (data == null || (data is Map && data.isEmpty)) {
         // Fallback to old user-path for backward compatibility or empty state
         return _getDb.ref('$_userPath/ELCB_SYSTEM/status').onValue.map((e) => e.snapshot.value?.toString() ?? 'STABLE');
+      } else if (data is Map) {
+        final deviceId = data.values.first.toString();
+        return _getDb.ref('devices/$deviceId/status').onValue.map((e) => e.snapshot.value?.toString() ?? 'STABLE');
+      } else {
+        return Stream.value('STABLE');
       }
-      final deviceId = data.values.first.toString();
-      return _getDb.ref('devices/$deviceId/status').onValue.map((e) => e.snapshot.value?.toString() ?? 'STABLE');
     }).distinct();
   }
 
@@ -83,7 +84,7 @@ class FirebaseService {
       return Stream.value(const UserModel());
     }
     return _getDb.ref('$_userPath/profile').onValue.map((event) {
-      if (event.snapshot.exists) {
+      if (event.snapshot.exists && event.snapshot.value is Map) {
         final data = Map<String, dynamic>.from(event.snapshot.value as Map);
         return UserModel.fromJson(data);
       }
@@ -94,50 +95,56 @@ class FirebaseService {
   // Get Trip Logs
   Stream<List<TripLog>> get tripLogsStream {
     if (_userPath == null) {
-      return Stream.value([
-        TripLog(timestamp: DateTime.now().subtract(const Duration(days: 1)), isTripped: true, description: "TRIPPED"),
-      ]);
+      return Stream.value([]);
     }
 
     return _getDb.ref('$_userPath/device_ids').onValue.switchMap((event) {
-      final data = event.snapshot.value as Map?;
+      final data = event.snapshot.value;
       String path;
-      if (data == null || data.isEmpty) {
+      if (data == null || (data is Map && data.isEmpty)) {
         path = '$_userPath/logs';
-      } else {
+      } else if (data is Map) {
         final deviceId = data.values.first.toString();
         path = 'devices/$deviceId/logs';
+      } else {
+        path = '$_userPath/logs';
       }
 
       return _getDb.ref(path).onValue.map((event) {
         final List<TripLog> logs = [];
-        final data = event.snapshot.value as Map<dynamic, dynamic>?;
+        final dynamic val = event.snapshot.value;
         
-        if (data != null) {
-          data.forEach((key, value) {
-            if (key == 'init') return; 
-            final logMap = value as Map<dynamic, dynamic>;
-            final dateStr = logMap['date'] ?? '';
-            final timeStr = logMap['time'] ?? '';
-            
-            DateTime timestamp;
-            try {
-              timestamp = DateTime.parse('$dateStr $timeStr');
-            } catch (e) {
-              timestamp = DateTime.now();
-            }
+        if (val != null && val is Map) {
+          val.forEach((key, value) {
+            if (key == 'init' || value == null) return; 
+            if (value is Map) {
+              final dateStr = value['date']?.toString() ?? '';
+              final timeStr = value['time']?.toString() ?? '';
+              
+              DateTime timestamp;
+              try {
+                // Parse correctly combining strings, using T for iso8601 formatting safety
+                timestamp = DateTime.parse('${dateStr}T$timeStr');
+              } catch (e) {
+                try {
+                  timestamp = DateTime.parse('$dateStr $timeStr');
+                } catch (e2) {
+                  timestamp = DateTime.now();
+                }
+              }
 
-            logs.add(TripLog(
-              timestamp: timestamp,
-              isTripped: logMap['status'] == 'TRIPPED',
-              description: logMap['status'] ?? 'Unknown',
-            ));
+              logs.add(TripLog(
+                timestamp: timestamp,
+                isTripped: value['status']?.toString().toUpperCase() == 'TRIPPED',
+                description: value['status']?.toString() ?? 'Unknown',
+              ));
+            }
           });
           logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
         }
         return List<TripLog>.unmodifiable(logs);
       });
-    }).distinct(listEquals);
+    }).distinct();
   }
 
   // Check if user has any devices linked
@@ -157,13 +164,19 @@ class FirebaseService {
 
   // Get Profile
   Future<UserModel?> getProfile() async {
-    if (_userPath == null) return UserModel();
-    final snapshot = await _getDb.ref('$_userPath/profile').get();
-    if (snapshot.exists) {
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
-      return UserModel.fromJson(data);
+    if (_userPath == null) return const UserModel();
+    try {
+      final snapshot = await _getDb.ref('$_userPath/profile').get();
+      if (snapshot.exists && snapshot.value != null) {
+        if (snapshot.value is Map) {
+          final data = Map<String, dynamic>.from(snapshot.value as Map);
+          return UserModel.fromJson(data);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching profile: $e");
     }
-    return null;
+    return const UserModel();
   }
 
   // Reset and Initialize Database

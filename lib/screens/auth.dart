@@ -270,7 +270,7 @@ class _AuthHeader extends StatelessWidget {
       children: [
         FadeInUp(
           child: Text(
-            'ELCB Monitor',
+            'CircuGuard',
             style: GoogleFonts.outfit(
               fontSize: 36,
               fontWeight: FontWeight.w900,

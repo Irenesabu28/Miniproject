@@ -69,7 +69,7 @@ class GetStartedPage extends StatelessWidget {
                   FadeInUp(
                     delay: const Duration(milliseconds: 300),
                     child: Text(
-                      'ELCB Monitor',
+                      'CircuGuard',
                       style: GoogleFonts.outfit(
                         fontSize: 48,
                         fontWeight: FontWeight.w900,

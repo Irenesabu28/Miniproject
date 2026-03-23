@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import '../utils/theme.dart';
 import '../main.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class WifiSetupPage extends StatefulWidget {
   const WifiSetupPage({super.key});
@@ -31,11 +32,25 @@ class _WifiSetupPageState extends State<WifiSetupPage> {
   }
 
   Future<void> _checkBluetooth() async {
-    _bluetoothState = await FlutterBluetoothSerial.instance.state;
-    if (_bluetoothState == BluetoothState.STATE_OFF) {
-      await FlutterBluetoothSerial.instance.requestEnable();
+    // Request permissions first (vital for Android 12+ to avoid app crashing)
+    await [
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.location,
+    ].request();
+
+    try {
+      _bluetoothState = await FlutterBluetoothSerial.instance.state;
+      if (_bluetoothState == BluetoothState.STATE_OFF) {
+        await FlutterBluetoothSerial.instance.requestEnable();
+      }
+    } catch (e) {
+      debugPrint("Bluetooth error: $e");
     }
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _startScan() async {
@@ -44,20 +59,26 @@ class _WifiSetupPageState extends State<WifiSetupPage> {
       _devicesList = [];
     });
 
-    FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
-      final existingIndex = _devicesList.indexWhere((element) => element.address == r.device.address);
-      if (existingIndex >= 0) {
-        _devicesList[existingIndex] = r.device;
-      } else {
-        setState(() {
-          _devicesList.add(r.device);
-        });
-      }
-    }).onDone(() {
-      setState(() {
-        _isScanning = false;
+    try {
+      FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
+        final existingIndex = _devicesList.indexWhere((element) => element.address == r.device.address);
+        if (existingIndex >= 0) {
+          _devicesList[existingIndex] = r.device;
+        } else {
+          setState(() {
+            _devicesList.add(r.device);
+          });
+        }
+      }, onError: (dynamic error) {
+        debugPrint("Scan error: $error");
+        if (mounted) setState(() => _isScanning = false);
+      }).onDone(() {
+        if (mounted) setState(() => _isScanning = false);
       });
-    });
+    } catch (e) {
+      debugPrint("Scan exception: $e");
+      if (mounted) setState(() => _isScanning = false);
+    }
   }
 
   Future<void> _connectToDevice(BluetoothDevice device) async {
@@ -243,7 +264,7 @@ class _WifiSetupPageState extends State<WifiSetupPage> {
                 FadeInDown(
                   delay: const Duration(milliseconds: 200),
                   child: Text(
-                    "Select your ELCB Monitor device below to configure its WiFi settings.",
+                    "Select your CircuGuard device below to configure its WiFi settings.",
                     textAlign: TextAlign.center,
                     style: GoogleFonts.outfit(
                       color: AppColors.textBody,

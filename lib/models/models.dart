@@ -2,30 +2,22 @@ class UserModel {
   final String name;
   final String email;
   final String phone;
-  final String address;
-  final String consumerNumber;
 
   const UserModel({
     this.name = '',
     this.email = '',
     this.phone = '',
-    this.address = '',
-    this.consumerNumber = '',
   });
 
   UserModel copyWith({
     String? name,
     String? email,
     String? phone,
-    String? address,
-    String? consumerNumber,
   }) {
     return UserModel(
       name: name ?? this.name,
       email: email ?? this.email,
       phone: phone ?? this.phone,
-      address: address ?? this.address,
-      consumerNumber: consumerNumber ?? this.consumerNumber,
     );
   }
 
@@ -33,16 +25,12 @@ class UserModel {
     'name': name,
     'email': email,
     'phone': phone,
-    'address': address,
-    'consumer_number': consumerNumber,
   };
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
     name: json['name'] ?? '',
     email: json['email'] ?? '',
     phone: json['phone'] ?? '',
-    address: json['address'] ?? '',
-    consumerNumber: json['consumer_number'] ?? '',
   );
 
   @override
@@ -52,12 +40,10 @@ class UserModel {
           runtimeType == other.runtimeType &&
           name == other.name &&
           email == other.email &&
-          phone == other.phone &&
-          address == other.address &&
-          consumerNumber == other.consumerNumber;
+          phone == other.phone;
 
   @override
-  int get hashCode => name.hashCode ^ email.hashCode ^ phone.hashCode ^ address.hashCode ^ consumerNumber.hashCode;
+  int get hashCode => name.hashCode ^ email.hashCode ^ phone.hashCode;
 }
 
 class TripLog {

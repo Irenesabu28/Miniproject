@@ -274,7 +274,7 @@ class StatusView extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'VoltGuard',
+                                  'CircuGuard',
                                   style: GoogleFonts.outfit(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
@@ -384,7 +384,7 @@ class _WelcomeView extends StatelessWidget {
         FadeInUp(
           delay: const Duration(milliseconds: 200),
           child: Text(
-            'Welcome To VoltGuard!',
+            'Welcome To CircuGuard!',
             style: GoogleFonts.outfit(
               fontSize: 32,
               fontWeight: FontWeight.bold,
@@ -673,27 +673,25 @@ class _ProfilePageState extends State<ProfilePage> {
   final FirebaseService _firebaseService = FirebaseService();
   final _formKey = GlobalKey<FormState>();
   
+  bool _isEditing = false;
   late TextEditingController _nameController;
+  late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  late TextEditingController _addressController;
-  late TextEditingController _consumerController;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController();
+    _emailController = TextEditingController();
     _phoneController = TextEditingController();
-    _addressController = TextEditingController();
-    _consumerController = TextEditingController();
     _loadProfile();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
-    _addressController.dispose();
-    _consumerController.dispose();
     super.dispose();
   }
 
@@ -703,9 +701,8 @@ class _ProfilePageState extends State<ProfilePage> {
       if (mounted) {
         setState(() {
           _nameController.text = user.name;
+          _emailController.text = user.email;
           _phoneController.text = user.phone;
-          _addressController.text = user.address;
-          _consumerController.text = user.consumerNumber;
         });
       }
     }
@@ -716,14 +713,16 @@ class _ProfilePageState extends State<ProfilePage> {
     
     final updatedUser = UserModel(
       name: _nameController.text,
+      email: _emailController.text,
       phone: _phoneController.text,
-      address: _addressController.text,
-      consumerNumber: _consumerController.text,
     );
     
     await _firebaseService.saveProfile(updatedUser);
     
     if (mounted) {
+      setState(() {
+        _isEditing = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated successfully!')),
       );
@@ -760,29 +759,39 @@ class _ProfilePageState extends State<ProfilePage> {
                     const Text('Subscription and Account Details', style: TextStyle(color: AppColors.textBody)),
                     const SizedBox(height: 32),
                     
-                    const ProfileAvatar(),
+                    ProfileAvatar(
+                      isEditing: _isEditing,
+                      onEditToggle: () {
+                        setState(() {
+                          _isEditing = !_isEditing;
+                        });
+                      },
+                    ),
                     const SizedBox(height: 32),
                     
-                    ProfileField(label: 'Full Name', icon: Icons.person_outline, controller: _nameController),
-                    ProfileField(label: 'Phone Number', icon: Icons.phone_outlined, controller: _phoneController),
-                    ProfileField(label: 'Address', icon: Icons.location_on_outlined, controller: _addressController, maxLines: 2),
-                    ProfileField(label: 'Consumer Number', icon: Icons.receipt_long_outlined, controller: _consumerController),
+                    ProfileField(label: 'Full Name', icon: Icons.person_outline, controller: _nameController, enabled: _isEditing),
+                    ProfileField(label: 'Email ID', icon: Icons.email_outlined, controller: _emailController, enabled: _isEditing),
+                    ProfileField(label: 'Phone Number', icon: Icons.phone_outlined, controller: _phoneController, enabled: _isEditing),
                     
                     const SizedBox(height: 40),
                     
-                    SizedBox(
-                      width: double.infinity,
-                      height: 60,
-                      child: ElevatedButton(
-                        onPressed: _saveProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          elevation: 10,
-                          shadowColor: AppColors.primary.withValues(alpha: 0.3),
+                    if (_isEditing)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 60,
+                        child: ElevatedButton(
+                          onPressed: _saveProfile,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            elevation: 10,
+                            shadowColor: AppColors.primary.withValues(alpha: 0.3),
+                          ),
+                          child: const Text('SAVE SETTINGS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
                         ),
-                        child: const Text('SAVE SETTINGS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
                       ),
-                    ),
+                    
+                    if (!_isEditing)
+                      const SizedBox(height: 60),
                     const SizedBox(height: 20),
                     const _ResetDatabaseButton(),
                     const SizedBox(height: 100), // Space for bottom nav
@@ -821,32 +830,41 @@ class _ResetDatabaseButton extends StatelessWidget {
 }
 
 class ProfileAvatar extends StatelessWidget {
-  const ProfileAvatar({super.key});
+  final bool isEditing;
+  final VoidCallback onEditToggle;
+
+  const ProfileAvatar({super.key, required this.isEditing, required this.onEditToggle});
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Stack(
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFF6366F1), // Reference blue
+      child: GestureDetector(
+        onTap: onEditToggle,
+        child: Stack(
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF6366F1), // Reference blue
+              ),
+              child: const Icon(Icons.person, size: 60, color: Colors.white),
             ),
-            child: const Icon(Icons.person, size: 60, color: Colors.white),
-          ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(color: Colors.orangeAccent, shape: BoxShape.circle),
-              child: const Icon(Icons.edit, size: 18, color: Colors.white),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: isEditing ? Colors.green : Colors.orangeAccent, 
+                  shape: BoxShape.circle
+                ),
+                child: Icon(isEditing ? Icons.check : Icons.edit, size: 18, color: Colors.white),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -857,6 +875,7 @@ class ProfileField extends StatelessWidget {
   final IconData icon;
   final TextEditingController controller;
   final int maxLines;
+  final bool enabled;
 
   const ProfileField({
     super.key,
@@ -864,6 +883,7 @@ class ProfileField extends StatelessWidget {
     required this.icon,
     required this.controller,
     this.maxLines = 1,
+    this.enabled = true,
   });
 
   @override
@@ -873,16 +893,17 @@ class ProfileField extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.textBody, fontSize: 13, fontWeight: FontWeight.bold)),
+          Text(label, style: TextStyle(color: enabled ? AppColors.primary : AppColors.textBody, fontSize: 13, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           TextFormField(
             controller: controller,
             maxLines: maxLines,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            enabled: enabled,
+            style: TextStyle(color: enabled ? Colors.white : Colors.white70, fontSize: 16),
             decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
+              prefixIcon: Icon(icon, color: enabled ? AppColors.primary : AppColors.textBody.withValues(alpha: 0.5), size: 20),
               filled: true,
-              fillColor: AppColors.surface,
+              fillColor: enabled ? AppColors.surface : AppColors.surface.withValues(alpha: 0.3),
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),

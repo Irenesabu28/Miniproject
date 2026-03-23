@@ -41,7 +41,7 @@ void setup() {
   deviceId.toUpperCase(); 
   
   Serial.println("\n==============================");
-  Serial.println("📱 ELCB MONITOR INITIALIZED");
+  Serial.println("📱 CIRCU-GUARD INITIALIZED");
   Serial.println("🆔 DEVICE ID: " + deviceId);
   Serial.println("==============================\n");
 
