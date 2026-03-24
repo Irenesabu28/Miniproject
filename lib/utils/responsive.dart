@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'theme.dart';
 
 class ResponsiveWrapper extends StatelessWidget {
   final Widget child;

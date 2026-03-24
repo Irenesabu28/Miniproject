@@ -9,7 +9,9 @@ import '../main.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class WifiSetupPage extends StatefulWidget {
-  const WifiSetupPage({super.key});
+  final String? ssid;
+  final String? password;
+  const WifiSetupPage({super.key, this.ssid, this.password});
 
   @override
   State<WifiSetupPage> createState() => _WifiSetupPageState();
@@ -20,7 +22,6 @@ class _WifiSetupPageState extends State<WifiSetupPage> {
   List<BluetoothDevice> _devicesList = [];
   bool _isScanning = false;
   BluetoothConnection? _connection;
-  bool _isConnected = false;
 
   final TextEditingController _ssidController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
@@ -86,31 +87,72 @@ class _WifiSetupPageState extends State<WifiSetupPage> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (context) => Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: AppColors.primary),
+                SizedBox(height: 16),
+                Text("Connecting to device...", style: TextStyle(color: Colors.white)),
+              ],
+            ),
+          ),
+        ),
       );
 
-      _connection = await BluetoothConnection.toAddress(device.address);
+      // Add timeout to connection attempt
+      _connection = await BluetoothConnection.toAddress(device.address).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw TimeoutException("Connection timed out. Ensure the device is powered on and within range."),
+      );
       
-      // Listen for Bluetooth data (e.g., TRIPPED status when WiFi is down)
+      // Listen for data
       _connection!.input?.listen((data) {
         String msg = String.fromCharCodes(data);
         if (msg.contains("TRIPPED")) {
           showTripAlert();
         }
       }).onDone(() {
-        if (mounted) setState(() => _isConnected = false);
+        debugPrint("Link to device closed.");
+        if (mounted) setState(() {});
       });
 
-      if (context.mounted) Navigator.pop(context); // Close loading dialog
-
-      setState(() {
-        _isConnected = true;
-      });
-
-      _showCredentialsDialog(device);
+      if (mounted) Navigator.pop(context); // Close loading dialog
+      
+      // Auto-send if credentials provided, else show input
+      if (widget.ssid != null && widget.ssid!.isNotEmpty) {
+        _sendDirectly(widget.ssid!, widget.password ?? "");
+      } else {
+        _showCredentialsDialog(device);
+      }
+      
+      setState(() {});
     } catch (e) {
-      if (context.mounted) Navigator.pop(context); // Close loading dialog
-      _showError("Connection failed: $e");
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        _showError("Connection failed: ${e.toString()}");
+      }
+    }
+  }
+
+  Future<void> _sendDirectly(String ssid, String pass) async {
+    try {
+      String data = "$ssid,$pass";
+      _connection!.output.add(utf8.encode(data));
+      await _connection!.output.allSent;
+      
+      if (mounted) {
+        _showSuccess("Credentials sent! Device is connecting to $ssid...");
+        // Auto-quit after a short delay
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) Navigator.pop(context);
+        });
+      }
+    } catch (e) {
+      _showError("Failed to send: $e");
     }
   }
 
@@ -181,7 +223,7 @@ class _WifiSetupPageState extends State<WifiSetupPage> {
       _connection!.output.add(utf8.encode(data));
       await _connection!.output.allSent;
       
-      if (context.mounted) {
+      if (mounted) {
         Navigator.pop(context); // Close dialog
         _showSuccess("Credentials sent! Device is connecting...");
       }
@@ -197,10 +239,10 @@ class _WifiSetupPageState extends State<WifiSetupPage> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
         prefixIcon: Icon(icon, color: AppColors.primary),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.05),
+        fillColor: Colors.white.withValues(alpha: 0.05),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
       ),
     );
@@ -281,7 +323,7 @@ class _WifiSetupPageState extends State<WifiSetupPage> {
                       return FadeInUp(
                         delay: Duration(milliseconds: 100 * index),
                         child: Card(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Colors.white.withValues(alpha: 0.05),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           margin: const EdgeInsets.only(bottom: 12),
                           child: ListTile(
@@ -295,7 +337,7 @@ class _WifiSetupPageState extends State<WifiSetupPage> {
                             ),
                             subtitle: Text(
                               device.address,
-                              style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                             ),
                             trailing: const Icon(Icons.chevron_right, color: Colors.white24),
                             onTap: () => _connectToDevice(device),

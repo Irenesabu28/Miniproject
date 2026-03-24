@@ -1,30 +1,45 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:rxdart/rxdart.dart';
 import '../main.dart';
 import '../models/models.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseService {
   FirebaseDatabase? _db;
   FirebaseAuth? _auth;
-  bool _initialized = false;
+  List<String> tripHistory = [];
+  int tripCount = 0;
   
   // Singleton pattern
   static final FirebaseService _instance = FirebaseService._internal();
   factory FirebaseService() => _instance;
-  
-  FirebaseService._internal();
+                
+  FirebaseService._internal() {
+    loadHistory();
+  }
+
+  void saveHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setStringList("tripHistory", tripHistory);
+  }
+
+  void loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String>? saved = prefs.getStringList("tripHistory");
+
+    if (saved != null) {
+      tripHistory = saved;
+    }
+  }
 
   FirebaseDatabase get _getDb {
-    _initialized = true;
     return _db ??= FirebaseDatabase.instance;
   }
   
   FirebaseAuth get _getAuth {
-    _initialized = true;
     return _auth ??= FirebaseAuth.instance;
   }
 
@@ -152,7 +167,7 @@ class FirebaseService {
     if (_userPath == null) return Stream.value(false);
     return _getDb.ref('$_userPath/device_ids').onValue.map((event) {
       final data = event.snapshot.value;
-      return data != null && (data as Map).isNotEmpty;
+      return data is Map && data.isNotEmpty;
     }).distinct();
   }
 
@@ -248,13 +263,64 @@ class FirebaseService {
 
     statusStream.listen((status) {
       if (status == "TRIPPED") {
-        _showLocalNotification();
+        handleTrip();
       }
     });
   }
 
-  Future<void> _showLocalNotification() async {
-    await showTripAlert();
+  Future<void> clearHistory() async {
+    tripHistory.clear();
+    tripCount = 0;
+    saveHistory();
+
+    if (_userPath == null) return;
+    
+    try {
+      final deviceSnap = await _getDb.ref('$_userPath/device_ids').get();
+      final data = deviceSnap.value;
+      if (data is Map && data.isNotEmpty) {
+        final deviceId = data.values.first.toString();
+        await _getDb.ref('devices/$deviceId/logs').remove();
+      } else {
+        await _getDb.ref('$_userPath/logs').remove();
+      }
+    } catch (e) {
+      debugPrint("Error clearing history: $e");
+    }
+  }
+
+  void onDataReceived(String msg) {
+    if (msg.contains("TRIPPED")) {
+      handleTrip();
+    }
+  }
+
+  void handleTrip() {
+    final now = DateTime.now();
+
+    final formattedTime =
+        "${now.day}/${now.month}/${now.year} ${now.hour}:${now.minute}";
+
+    tripCount++;
+    tripHistory.insert(0, formattedTime); // newest on top
+
+    saveHistory(); // IMPORTANT
+    showTripNotification();
+
+    if (tripCount >= 3) {
+      showTripAlert(
+        "Multiple trips detected! Check wiring and appliances.",
+        "⚠️ WARNING",
+      );
+    }
+  }
+
+  Future<void> showTripNotification() async {
+    if (tripHistory.isNotEmpty) {
+      await showTripAlert("Trip detected at ${tripHistory[0]}");
+    } else {
+      await showTripAlert();
+    }
   }
 }
 

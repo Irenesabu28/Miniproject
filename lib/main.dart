@@ -3,7 +3,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'utils/theme.dart';
-import 'screens/get_started.dart';
 import 'screens/home.dart';
 import 'screens/auth.dart';
 import 'services/firebase_service.dart';
@@ -23,7 +22,7 @@ Future<void> initNotifications() async {
   await notificationsPlugin.initialize(settings);
 }
 
-Future<void> showTripAlert() async {
+Future<void> showTripAlert([String message = "Check immediately!", String title = "⚠️ ELCB TRIPPED"]) async {
   const AndroidNotificationDetails androidDetails =
       AndroidNotificationDetails(
     'elcb_channel',
@@ -37,8 +36,8 @@ Future<void> showTripAlert() async {
 
   await notificationsPlugin.show(
     0,
-    "⚠️ ELCB TRIPPED",
-    "Check immediately!",
+    title,
+    message,
     details,
   );
 }

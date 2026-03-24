@@ -138,7 +138,7 @@ class _NavBarItem extends StatelessWidget {
       onTap: onTap,
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
-      child: Container(
+      child: SizedBox(
         width: 80,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -247,7 +247,6 @@ class StatusView extends StatelessWidget {
             return StreamBuilder<UserModel>(
               stream: firebaseService.profileStream,
               builder: (context, userSnapshot) {
-                final user = userSnapshot.data ?? const UserModel();
                 final status = statusSnapshot.data ?? 'STABLE';
                 final isTripped = status.toUpperCase() == 'TRIPPED';
                 final statusColor = isTripped ? AppColors.statusTripped : AppColors.statusStable;
@@ -301,7 +300,7 @@ class StatusView extends StatelessWidget {
                             Center(
                               child: Column(
                                 children: [
-                                  const StatusOrbModule(),
+                                  StatusOrbModule(isTripped: isTripped),
                                   const SizedBox(height: 56),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -334,10 +333,7 @@ class StatusView extends StatelessWidget {
                                         child: _ActionTile(
                                           label: "CONFIGURE\nDEVICE WIFI",
                                           icon: Icons.wifi_tethering_rounded,
-                                          onTap: () => Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (context) => const WifiSetupPage()),
-                                          ),
+                                          onTap: () => _showWiFiPrompt(context),
                                         ),
                                       ),
                                     ],
@@ -357,6 +353,86 @@ class StatusView extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  void _showWiFiPrompt(BuildContext context) {
+    final ssidController = TextEditingController();
+    final passController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 40,
+          left: 24,
+          right: 24,
+          top: 40,
+        ),
+        decoration: const BoxDecoration(
+          color: Color(0xFF0F172A),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "WiFi Information",
+              style: GoogleFonts.outfit(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text("Enter the WiFi details to send to your device.", style: GoogleFonts.outfit(color: Colors.white60)),
+            const SizedBox(height: 32),
+            TextField(
+              controller: ssidController,
+              style: const TextStyle(color: Colors.white),
+              decoration: _inputDecoration("WiFi Name (SSID)", Icons.wifi),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passController,
+              obscureText: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: _inputDecoration("WiFi Password", Icons.lock),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (ssidController.text.isEmpty) return;
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => WifiSetupPage(
+                        ssid: ssidController.text,
+                        password: passController.text,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text("PROCEED TO SCAN", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+      prefixIcon: Icon(icon, color: AppColors.primary),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.05),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
     );
   }
 }
@@ -445,10 +521,13 @@ class _WelcomeView extends StatelessWidget {
 }
 
 class StatusOrbModule extends StatelessWidget {
-  const StatusOrbModule({super.key});
+  final bool isTripped;
+  const StatusOrbModule({super.key, this.isTripped = false});
 
   @override
   Widget build(BuildContext context) {
+    final orbColor = isTripped ? AppColors.statusTripped : AppColors.primary;
+    
     return ZoomIn(
       child: SizedBox(
         width: 280,
@@ -465,7 +544,7 @@ class StatusOrbModule extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.2),
+                    color: orbColor.withValues(alpha: 0.2),
                     blurRadius: 100,
                     spreadRadius: 30,
                   ),
@@ -477,13 +556,13 @@ class StatusOrbModule extends StatelessWidget {
             Spin(
               duration: const Duration(seconds: 10),
               infinite: true,
-              child: Container(
+              child: SizedBox(
                 width: 250,
                 height: 250,
                 child: CircularProgressIndicator(
                   value: 0.7,
                   strokeWidth: 2,
-                  color: AppColors.primary.withValues(alpha: 0.3),
+                  color: orbColor.withValues(alpha: 0.3),
                   strokeCap: StrokeCap.round,
                 ),
               ),
@@ -493,13 +572,13 @@ class StatusOrbModule extends StatelessWidget {
             Spin(
               duration: const Duration(seconds: 15),
               infinite: true,
-              child: Container(
+              child: SizedBox(
                 width: 210,
                 height: 210,
                 child: CircularProgressIndicator(
                   value: 0.4,
                   strokeWidth: 3,
-                  color: AppColors.primary.withValues(alpha: 0.4),
+                  color: orbColor.withValues(alpha: 0.4),
                   strokeCap: StrokeCap.round,
                 ),
               ),
@@ -509,13 +588,13 @@ class StatusOrbModule extends StatelessWidget {
             Spin(
               duration: const Duration(seconds: 5),
               infinite: true,
-              child: Container(
+              child: SizedBox(
                 width: 170,
                 height: 170,
-                child: const CircularProgressIndicator(
+                child: CircularProgressIndicator(
                   value: 0.3,
                   strokeWidth: 5,
-                  color: AppColors.primary,
+                  color: orbColor,
                   strokeCap: StrokeCap.round,
                 ),
               ),
@@ -530,14 +609,14 @@ class StatusOrbModule extends StatelessWidget {
                 gradient: RadialGradient(
                   colors: [
                     Colors.white.withValues(alpha: 0.8),
-                    AppColors.primary,
-                    AppColors.primary.withValues(alpha: 0.2),
+                    orbColor,
+                    orbColor.withValues(alpha: 0.2),
                     Colors.transparent,
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.8),
+                    color: orbColor.withValues(alpha: 0.8),
                     blurRadius: 40,
                     spreadRadius: 10,
                   ),
@@ -553,13 +632,18 @@ class StatusOrbModule extends StatelessWidget {
 }
 
 
-class LogsPage extends StatelessWidget {
+class LogsPage extends StatefulWidget {
   const LogsPage({super.key});
 
   @override
+  State<LogsPage> createState() => _LogsPageState();
+}
+
+class _LogsPageState extends State<LogsPage> {
+  final FirebaseService firebaseService = FirebaseService();
+
+  @override
   Widget build(BuildContext context) {
-    final FirebaseService firebaseService = FirebaseService();
-    
     return Container(
       color: const Color(0xFF0F172A),
       child: SafeArea(
@@ -568,8 +652,33 @@ class LogsPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Trip History', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-              const Text('Detailed logs of all ELCB events', style: TextStyle(color: AppColors.textBody)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text('Trip History', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text('Detailed logs of all ELCB events', style: TextStyle(color: AppColors.textBody)),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        firebaseService.clearHistory();
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
+                      foregroundColor: Colors.redAccent,
+                      elevation: 0,
+                    ),
+                    child: const Text("Clear History"),
+                  ),
+                ],
+              ),
               const SizedBox(height: 24),
               Expanded(
                 child: StreamBuilder<List<TripLog>>(
@@ -580,28 +689,16 @@ class LogsPage extends StatelessWidget {
                     }
                     
                     final logs = snapshot.data ?? [];
-                    
-                    if (logs.isEmpty) {
-                      return const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.history_toggle_off_rounded, size: 80, color: Colors.white10),
-                            SizedBox(height: 16),
-                            Text('No trip events recorded', style: TextStyle(color: AppColors.textBody)),
-                          ],
-                        ),
-                      );
-                    }
+                    final trippedLogs = logs.where((l) => l.isTripped).toList();
 
+                    if (trippedLogs.isEmpty) {
+                      return const Center(child: Text("No Trip History", style: TextStyle(color: Colors.white)));
+                    }
+                    
                     return ListView.builder(
-                      itemCount: logs.length,
-                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: trippedLogs.length,
                       itemBuilder: (context, index) {
-                        return FadeInLeft(
-                          delay: Duration(milliseconds: index * 100),
-                          child: LogEntryCard(log: logs[index]),
-                        );
+                        return LogEntryCard(log: trippedLogs[index]);
                       },
                     );
                   },

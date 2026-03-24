@@ -141,7 +141,7 @@ class _ScanQRPageState extends State<ScanQRPage> {
             onPressed: _pickImage,
             label: const Text("FROM GALLERY", style: TextStyle(fontWeight: FontWeight.bold)),
             icon: const Icon(Icons.photo_library_outlined),
-            backgroundColor: Colors.white.withOpacity(0.9),
+            backgroundColor: Colors.white.withValues(alpha: 0.9),
             foregroundColor: Colors.black,
           ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
