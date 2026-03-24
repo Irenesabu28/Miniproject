@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import '../utils/theme.dart';
 import '../main.dart';
+import '../services/firebase_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class WifiSetupPage extends StatefulWidget {
@@ -112,9 +113,8 @@ class _WifiSetupPageState extends State<WifiSetupPage> {
       // Listen for data
       _connection!.input?.listen((data) {
         String msg = String.fromCharCodes(data);
-        if (msg.contains("TRIPPED")) {
-          showTripAlert();
-        }
+        // Unified workflow: Update the service so status reflects everywhere
+        FirebaseService().onDataReceived(msg);
       }).onDone(() {
         debugPrint("Link to device closed.");
         if (mounted) setState(() {});

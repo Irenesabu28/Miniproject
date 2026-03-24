@@ -11,12 +11,19 @@ class FirebaseService {
   FirebaseDatabase? _db;
   FirebaseAuth? _auth;
   List<String> tripHistory = [];
-  int tripCount = 0;
   
   // Singleton pattern
   static final FirebaseService _instance = FirebaseService._internal();
   factory FirebaseService() => _instance;
-                
+
+  // Bluetooth/Offline status support
+  final _bluetoothStatusController = BehaviorSubject<String>.seeded('STABLE');
+  Stream<String> get bluetoothStatusStream => _bluetoothStatusController.stream;
+
+  // Critical warning for dashboard
+  final _criticalWarningController = BehaviorSubject<String?>.seeded(null);
+  Stream<String?> get criticalWarningStream => _criticalWarningController.stream;
+
   FirebaseService._internal() {
     loadHistory();
   }
@@ -32,6 +39,10 @@ class FirebaseService {
 
     if (saved != null) {
       tripHistory = saved;
+      // Re-evaluate warning state after load
+      if (tripHistory.length >= 5) {
+        _criticalWarningController.add("Multiple trips detected! Please check your wiring and appliances for safety.");
+      }
     }
   }
 
@@ -70,27 +81,36 @@ class FirebaseService {
   }
 
   // Scoped Data Paths
-  String? get _userPath => currentUser?.uid != null ? 'database/users/${currentUser!.uid}' : null;
+  String? get _userPath => currentUser?.uid != null ? 'users/${currentUser!.uid}' : null;
 
-  // Listen to current ELCB status
+  // Listen to current ELCB status (Unified Firebase & Bluetooth)
   Stream<String> get statusStream {
     if (_userPath == null) {
-      return Stream.value('STABLE');
+      return bluetoothStatusStream;
     }
 
-    // First find the device ID, then listen to its status
-    return _getDb.ref('$_userPath/device_ids').onValue.switchMap((event) {
-      final data = event.snapshot.value;
-      if (data == null || (data is Map && data.isEmpty)) {
-        // Fallback to old user-path for backward compatibility or empty state
-        return _getDb.ref('$_userPath/ELCB_SYSTEM/status').onValue.map((e) => e.snapshot.value?.toString() ?? 'STABLE');
-      } else if (data is Map) {
-        final deviceId = data.values.first.toString();
-        return _getDb.ref('devices/$deviceId/status').onValue.map((e) => e.snapshot.value?.toString() ?? 'STABLE');
-      } else {
-        return Stream.value('STABLE');
-      }
-    }).distinct();
+    // Combine Firebase and Bluetooth streams
+    return Rx.combineLatest2<String, String, String>(
+      _getDb.ref('$_userPath/device_ids').onValue.switchMap((event) {
+        final data = event.snapshot.value;
+        if (data == null || (data is Map && data.isEmpty)) {
+          return _getDb.ref('$_userPath/ELCB_SYSTEM/status').onValue.map((e) => e.snapshot.value?.toString() ?? 'STABLE');
+        } else if (data is Map) {
+          final deviceId = data.values.first.toString();
+          return _getDb.ref('devices/$deviceId/status').onValue.map((e) => e.snapshot.value?.toString() ?? 'STABLE');
+        } else {
+          return Stream.value('STABLE');
+        }
+      }),
+      bluetoothStatusStream,
+      (fbStatus, btStatus) {
+        // Correct Trip logic: if EITHER says TRIPPED, we are TRIPPED
+        if (fbStatus.toUpperCase() == 'TRIPPED' || btStatus.toUpperCase() == 'TRIPPED') {
+          return 'TRIPPED';
+        }
+        return fbStatus;
+      },
+    ).distinct();
   }
 
   // Get reactive profile updates
@@ -138,7 +158,6 @@ class FirebaseService {
               
               DateTime timestamp;
               try {
-                // Parse correctly combining strings, using T for iso8601 formatting safety
                 timestamp = DateTime.parse('${dateStr}T$timeStr');
               } catch (e) {
                 try {
@@ -156,6 +175,16 @@ class FirebaseService {
             }
           });
           logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          
+          // Sync warning state with remote logs
+          final remoteTripCount = logs.where((l) => l.isTripped).length;
+          final totalCount = (remoteTripCount > tripHistory.length) ? remoteTripCount : tripHistory.length;
+          
+          if (totalCount >= 5) {
+            _criticalWarningController.add("Multiple trips detected! Please check your wiring and appliances for safety.");
+          } else {
+             _criticalWarningController.add(null);
+          }
         }
         return List<TripLog>.unmodifiable(logs);
       });
@@ -173,8 +202,13 @@ class FirebaseService {
 
   // Save/Update Profile
   Future<void> saveProfile(UserModel user) async {
-    if (_userPath == null) return;
-    await _getDb.ref('$_userPath/profile').set(user.toJson());
+    if (_userPath == null) throw Exception("User not authenticated.");
+    try {
+      await _getDb.ref('$_userPath/profile').set(user.toJson());
+    } catch (e) {
+      debugPrint("Save error: $e");
+      rethrow;
+    }
   }
 
   // Get Profile
@@ -270,7 +304,7 @@ class FirebaseService {
 
   Future<void> clearHistory() async {
     tripHistory.clear();
-    tripCount = 0;
+    _criticalWarningController.add(null);
     saveHistory();
 
     if (_userPath == null) return;
@@ -291,7 +325,10 @@ class FirebaseService {
 
   void onDataReceived(String msg) {
     if (msg.contains("TRIPPED")) {
+      _bluetoothStatusController.add("TRIPPED");
       handleTrip();
+    } else if (msg.contains("STABLE")) {
+      _bluetoothStatusController.add("STABLE");
     }
   }
 
@@ -301,17 +338,15 @@ class FirebaseService {
     final formattedTime =
         "${now.day}/${now.month}/${now.year} ${now.hour}:${now.minute}";
 
-    tripCount++;
     tripHistory.insert(0, formattedTime); // newest on top
 
     saveHistory(); // IMPORTANT
     showTripNotification();
 
-    if (tripCount >= 3) {
-      showTripAlert(
-        "Multiple trips detected! Check wiring and appliances.",
-        "⚠️ WARNING",
-      );
+    if (tripHistory.length >= 5) {
+      const warningMsg = "Multiple trips detected! Please check your wiring and appliances for safety.";
+      _criticalWarningController.add(warningMsg);
+      showTripAlert(warningMsg, "⚠️ CRITICAL WARNING");
     }
   }
 

@@ -65,7 +65,7 @@ class _ScanQRPageState extends State<ScanQRPage> {
     try {
       // Link device to user
       await FirebaseDatabase.instance
-          .ref("database/users/$uid/device_ids")
+          .ref("users/$uid/device_ids")
           .push()
           .set(code);
 
@@ -73,6 +73,11 @@ class _ScanQRPageState extends State<ScanQRPage> {
       await FirebaseDatabase.instance
           .ref("devices/$code/assigned_to")
           .set(uid);
+
+      // Initialize status as STABLE (Workflow Requirement)
+      await FirebaseDatabase.instance
+          .ref("devices/$code/status")
+          .set("STABLE");
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

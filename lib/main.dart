@@ -11,6 +11,7 @@ import 'firebase_options.dart';
 
 // Initialize Global Notification Plugin
 final FlutterLocalNotificationsPlugin notificationsPlugin = FlutterLocalNotificationsPlugin();
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> initNotifications() async {
   const AndroidInitializationSettings androidSettings =
@@ -22,7 +23,10 @@ Future<void> initNotifications() async {
   await notificationsPlugin.initialize(settings);
 }
 
+bool isTripAlertShowing = false;
+
 Future<void> showTripAlert([String message = "Check immediately!", String title = "⚠️ ELCB TRIPPED"]) async {
+  // Show notification in tray
   const AndroidNotificationDetails androidDetails =
       AndroidNotificationDetails(
     'elcb_channel',
@@ -40,6 +44,20 @@ Future<void> showTripAlert([String message = "Check immediately!", String title 
     message,
     details,
   );
+  
+  // Also show the "Alert Screen" modal if navigator is available
+  if (navigatorKey.currentState != null && !isTripAlertShowing) {
+    showTripAlertModal(navigatorKey.currentState!.context, message);
+  }
+}
+
+void showTripAlertModal(BuildContext context, String message) {
+  isTripAlertShowing = true;
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => TripAlertModal(message: message),
+  ).then((_) => isTripAlertShowing = false);
 }
 
 void main() async {
@@ -64,6 +82,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'CircuGuard',
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
       theme: AppTheme.darkTheme,
       home: StreamBuilder<User?>(
         stream: FirebaseService().authStateChanges,
@@ -91,6 +110,64 @@ class MyApp extends StatelessWidget {
         '/auth': (context) => const AuthPage(),
         '/home': (context) => const HomePage(),
       },
+    );
+  }
+}
+
+class TripAlertModal extends StatelessWidget {
+  final String message;
+  const TripAlertModal({super.key, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(20),
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5), width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.redAccent.withValues(alpha: 0.3),
+              blurRadius: 40,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 80),
+            const SizedBox(height: 24),
+            const Text(
+              "EMERGENCY TRIP",
+              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text("RESET / ACKNOWLEDGE", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

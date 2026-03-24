@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -272,14 +273,15 @@ class StatusView extends StatelessWidget {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  'CircuGuard',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    letterSpacing: -0.5,
-                                  ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Hello, ${userSnapshot.data?.name ?? "User"}', style: GoogleFonts.outfit(color: AppColors.textBody, fontSize: 13)),
+                                    Text(
+                                      'CircuGuard',
+                                      style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -0.5),
+                                    ),
+                                  ],
                                 ),
                                 Container(
                                   padding: const EdgeInsets.all(8),
@@ -302,6 +304,44 @@ class StatusView extends StatelessWidget {
                                 children: [
                                   StatusOrbModule(isTripped: isTripped),
                                   const SizedBox(height: 56),
+                                  
+                                  // Critical Warning Display
+                                  StreamBuilder<String?>(
+                                    stream: firebaseService.criticalWarningStream,
+                                    builder: (context, warningSnapshot) {
+                                      final warningMsg = warningSnapshot.data;
+                                      if (warningMsg == null) return const SizedBox.shrink();
+                                      
+                                      return FadeInUp(
+                                        child: Container(
+                                          margin: const EdgeInsets.only(bottom: 32),
+                                          padding: const EdgeInsets.all(20),
+                                          decoration: BoxDecoration(
+                                            color: Colors.redAccent.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.warning_rounded, color: Colors.redAccent, size: 28),
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                child: Text(
+                                                  warningMsg,
+                                                  style: const TextStyle(
+                                                    color: Colors.redAccent,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -774,6 +814,7 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
+  StreamSubscription? _profileSubscription;
 
   @override
   void initState() {
@@ -781,11 +822,22 @@ class _ProfilePageState extends State<ProfilePage> {
     _nameController = TextEditingController();
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
-    _loadProfile();
+    
+    // Listen to profile changes reactively
+    _profileSubscription = _firebaseService.profileStream.listen((user) {
+      if (!_isEditing && mounted) {
+        setState(() {
+          _nameController.text = user.name;
+          _emailController.text = user.email;
+          _phoneController.text = user.phone;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    _profileSubscription?.cancel();
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -814,15 +866,23 @@ class _ProfilePageState extends State<ProfilePage> {
       phone: _phoneController.text,
     );
     
-    await _firebaseService.saveProfile(updatedUser);
-    
-    if (mounted) {
-      setState(() {
-        _isEditing = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully!')),
-      );
+    try {
+      await _firebaseService.saveProfile(updatedUser);
+      
+      if (mounted) {
+        setState(() {
+          _isEditing = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -996,12 +1056,21 @@ class ProfileField extends StatelessWidget {
             controller: controller,
             maxLines: maxLines,
             enabled: enabled,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter $label';
+              }
+              if (label.contains('Email') && !value.contains('@')) {
+                return 'Please enter a valid email';
+              }
+              return null;
+            },
             style: TextStyle(color: enabled ? Colors.white : Colors.white70, fontSize: 16),
             decoration: InputDecoration(
               prefixIcon: Icon(icon, color: enabled ? AppColors.primary : AppColors.textBody.withValues(alpha: 0.5), size: 20),
               filled: true,
               fillColor: enabled ? AppColors.surface : AppColors.surface.withValues(alpha: 0.3),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),
                 borderSide: BorderSide.none,
@@ -1010,6 +1079,7 @@ class ProfileField extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
               ),
+              errorStyle: const TextStyle(color: AppColors.statusTripped, fontSize: 11),
             ),
           ),
         ],
