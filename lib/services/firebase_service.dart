@@ -346,31 +346,6 @@ class FirebaseService {
       handleTrip();
     } else if (msg.contains("STABLE")) {
       _bluetoothStatusController.add("STABLE");
-    } else if (msg.startsWith("DEVICE_ID:")) {
-      final id = msg.split(":")[1].trim();
-      _linkDeviceToUser(id);
-    }
-  }
-
-  Future<void> _linkDeviceToUser(String id) async {
-    if (_userPath == null) return;
-    try {
-      // 1. Check if already linked to avoid duplicates
-      final snap = await _getDb.ref('$_userPath/device_ids').get();
-      if (snap.exists && snap.value is Map) {
-        final existing = Map<String, dynamic>.from(snap.value as Map);
-        if (existing.values.contains(id)) return;
-      }
-      
-      // 2. Link User -> Device
-      await _getDb.ref('$_userPath/device_ids').push().set(id);
-      
-      // 3. Link Device -> User
-      await _getDb.ref('devices/$id/assigned_to').set(currentUser!.uid);
-      
-      debugPrint("Auto-Linked Device: $id");
-    } catch (e) {
-      debugPrint("Auto-link failed: $e");
     }
   }
 
