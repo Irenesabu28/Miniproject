@@ -112,23 +112,29 @@ void handleBluetooth() {
 
 // 🔥 Initialize Firebase Connection
 void initFirebase() {
+  Serial.println("🔥 Initializing Firebase...");
   config.api_key = API_KEY;
   config.database_url = DATABASE_URL;
 
-  if (Firebase.signUp(&config, &auth, "", "")) {
-    Serial.println("🔥 Firebase Authenticated");
-    firebaseReady = true;
-  } else {
-    Serial.printf("❌ Firebase SignUp Error: %s\n", config.signer.signupError.message.c_str());
-    firebaseReady = false; 
-    // We will still try to begin config below
-  }
+  // Assign the callback function for long running token generation task
+  config.token_status_callback = [](TokenInfo info) {
+    if (info.status == token_status_error) {
+      Serial.printf("❌ Token Error: %s\n", info.error.message.c_str());
+    } else if (info.status == token_status_ready) {
+      Serial.println("✅ Token Ready");
+    }
+  };
 
   Firebase.begin(&config, &auth);
   Firebase.reconnectWiFi(true);
   
-  // Send initial state immediately
-  sendStatus(digitalRead(IR_SENSOR_PIN) == LOW ? "TRIPPED" : "STABLE");
+  Serial.println("🔐 Authenticating (Anonymous)...");
+  if (Firebase.signUp(&config, &auth, "", "")) {
+    Serial.println("✨ Firebase Auth Started Successfully");
+    firebaseReady = true;
+  } else {
+    Serial.printf("⚠️ Firebase Auth Error: %s\n", config.signer.signupError.message.c_str());
+  }
 }
 
 // 📡 Monitor Sensor State
@@ -137,11 +143,13 @@ void checkSensor() {
 
   if (currentState != previousState) {
     String status = (currentState == LOW) ? "TRIPPED" : "STABLE";
-    Serial.println("\n⚠️ STATUS CHANGED: " + status);
+    Serial.println("\n⚠️ SENSOR DETECTED: " + status);
+    
+    // Small delay to allow state to settle
+    delay(50);
     
     sendStatus(status);
     
-    // Log trip event with timestamp
     if (status == "TRIPPED") {
       logToDatabase("TRIPPED");
     }

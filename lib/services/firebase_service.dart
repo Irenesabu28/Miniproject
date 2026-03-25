@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -309,14 +310,43 @@ class FirebaseService {
     }
   }
 
+  StreamSubscription? _statusSubscription;
+
   void _setupLocalAlerts() {
     if (_userPath == null) return;
-
-    statusStream.listen((status) {
+    
+    _statusSubscription?.cancel();
+    _statusSubscription = statusStream.listen((status) {
       if (status == "TRIPPED") {
         handleTrip();
+        // Record to cloud if we can resolve the device
+        _recordCloudTrip();
       }
     });
+  }
+
+  Future<void> _recordCloudTrip() async {
+    if (_userPath == null) return;
+    try {
+      final uid = currentUser!.uid;
+      final snapshot = await _getDb.ref('devices').orderByChild('assigned_to').equalTo(uid).get();
+      
+      if (snapshot.exists && snapshot.value is Map) {
+         final deviceId = (snapshot.value as Map).keys.first;
+         final now = DateTime.now();
+         final dateStr = "${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}";
+         final timeStr = "${now.hour.toString().padLeft(2,'0')}:${now.minute.toString().padLeft(2,'0')}:${now.second.toString().padLeft(2,'0')}";
+         
+         await _getDb.ref('devices/$deviceId/logs').push().set({
+           "status": "TRIPPED",
+           "date": dateStr,
+           "time": timeStr,
+           "source": "app" // Distinguish from hardware logs
+         });
+      }
+    } catch (e) {
+      debugPrint("Cloud log error: $e");
+    }
   }
 
   Future<void> clearHistory() async {
@@ -327,10 +357,12 @@ class FirebaseService {
     if (_userPath == null) return;
     
     try {
-      final deviceSnap = await _getDb.ref('$_userPath/device_ids').get();
-      final data = deviceSnap.value;
-      if (data is Map && data.isNotEmpty) {
-        final deviceId = data.values.first.toString();
+      final uid = currentUser!.uid;
+      final snapshot = await _getDb.ref('devices').orderByChild('assigned_to').equalTo(uid).get();
+      
+      if (snapshot.exists && snapshot.value is Map) {
+        final data = snapshot.value as Map;
+        final deviceId = data.keys.first;
         await _getDb.ref('devices/$deviceId/logs').remove();
       } else {
         await _getDb.ref('$_userPath/logs').remove();
@@ -344,6 +376,7 @@ class FirebaseService {
     if (msg.contains("TRIPPED")) {
       _bluetoothStatusController.add("TRIPPED");
       handleTrip();
+      _recordCloudTrip();
     } else if (msg.contains("STABLE")) {
       _bluetoothStatusController.add("STABLE");
     }
@@ -355,9 +388,11 @@ class FirebaseService {
     final formattedTime =
         "${now.day}/${now.month}/${now.year} ${now.hour}:${now.minute}";
 
-    tripHistory.insert(0, formattedTime); // newest on top
+    // Prevent duplicate entries for the same minute
+    if (tripHistory.isNotEmpty && tripHistory[0] == formattedTime) return;
 
-    saveHistory(); // IMPORTANT
+    tripHistory.insert(0, formattedTime);
+    saveHistory();
     showTripNotification();
 
     if (tripHistory.length >= 5) {
