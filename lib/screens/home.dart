@@ -764,17 +764,17 @@ class LogEntryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.statusTripped.withValues(alpha: 0.1),
+              color: AppColors.statusTripped.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.warning_amber_rounded, color: AppColors.statusTripped, size: 24),
+            child: const Icon(Icons.bolt_rounded, color: AppColors.statusTripped, size: 28),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -783,16 +783,30 @@ class LogEntryCard extends StatelessWidget {
               children: [
                 Text(
                   DateFormat('EEEE, MMM d, yyyy').format(log.timestamp),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
                 ),
-                Text(
-                  DateFormat('hh:mm a').format(log.timestamp),
-                  style: const TextStyle(color: AppColors.textBody, fontSize: 13),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.access_time_rounded, color: AppColors.textBody, size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      DateFormat('hh:mm:ss a').format(log.timestamp),
+                      style: GoogleFonts.outfit(color: AppColors.textBody, fontSize: 14),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          const Icon(Icons.info_outline_rounded, color: AppColors.textBody),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(color: AppColors.statusTripped.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
+            child: Text(
+              log.description.toUpperCase(),
+              style: const TextStyle(color: AppColors.statusTripped, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
+          ),
         ],
       ),
     );

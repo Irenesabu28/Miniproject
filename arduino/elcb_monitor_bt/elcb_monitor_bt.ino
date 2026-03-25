@@ -9,9 +9,9 @@
 // 📡 IR Sensor Pin
 #define IR_SENSOR_PIN 5
 
-// 🔥 Project Credentials (matches flutter android config)
-#define API_KEY "AIzaSyAspo3Jm7F3YSAmeFyTUmqby5CiYXfMTos"
-#define DATABASE_URL "https://miniproject-fc41e-default-rtdb.firebaseio.com"
+// 🔥 Project Credentials (Web Key is often more permissive for ESP32)
+#define API_KEY "AIzaSyAhwUr4ZGAQC9NM3yVqkacskLGlwrrdGO8"
+#define DATABASE_URL "https://miniproject-fc41e-default-rtdb.firebaseio.com/"
 
 // 🛠️ Global Objects
 BluetoothSerial SerialBT;
@@ -169,16 +169,15 @@ void sendStatus(String status) {
 void logToDatabase(String status) {
   if (WiFi.status() != WL_CONNECTED) return;
 
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    Serial.println("❌ Failed to get NTP time");
-    return;
+  char dateBuff[12] = "0000-00-00";
+  char timeBuff[10] = "00:00:00";
+  
+  if (getLocalTime(&timeinfo)) {
+    strftime(dateBuff, 12, "%Y-%m-%d", &timeinfo);
+    strftime(timeBuff, 10, "%H:%M:%S", &timeinfo);
+  } else {
+    Serial.println("❌ Failed to get NTP time, using 00:00:00");
   }
-
-  char dateBuff[12];
-  char timeBuff[10];
-  strftime(dateBuff, 12, "%Y-%m-%d", &timeinfo);
-  strftime(timeBuff, 10, "%H:%M:%S", &timeinfo);
 
   FirebaseJson json;
   json.set("status", status);
