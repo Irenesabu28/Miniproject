@@ -89,24 +89,38 @@ class FirebaseService {
       return bluetoothStatusStream;
     }
 
-    // Combine Firebase and Bluetooth streams
+    // Resolve Status from multiple sources:
+    // 1. Devices assigned to this UID (Dynamic lookup)
+    // 2. Legacy path (users/$uid/ELCB_SYSTEM/status)
+    // 3. Bluetooth stream
+    
+    final uid = currentUser!.uid;
+
     return Rx.combineLatest2<String, String, String>(
-      _getDb.ref('$_userPath/device_ids').onValue.switchMap((event) {
+      _getDb.ref('devices').orderByChild('assigned_to').equalTo(uid).onValue.switchMap((event) {
         final data = event.snapshot.value;
-        if (data == null || (data is Map && data.isEmpty)) {
-          return _getDb.ref('$_userPath/ELCB_SYSTEM/status').onValue.map((e) => e.snapshot.value?.toString() ?? 'STABLE');
-        } else if (data is Map) {
-          final deviceId = data.values.first.toString();
-          return _getDb.ref('devices/$deviceId/status').onValue.map((e) => e.snapshot.value?.toString() ?? 'STABLE');
-        } else {
-          return Stream.value('STABLE');
+        
+        if (data != null && data is Map && data.isNotEmpty) {
+          // Found devices assigned to this user
+          final firstDevice = data.values.first;
+          if (firstDevice is Map) {
+            final status = firstDevice['status']?.toString() ?? 'STABLE';
+            return Stream.value(status);
+          }
         }
+        
+        // Fallback to legacy path if no assigned device found
+        return _getDb.ref('$_userPath/ELCB_SYSTEM/status').onValue.map((e) => e.snapshot.value?.toString() ?? 'STABLE');
       }),
       bluetoothStatusStream,
       (fbStatus, btStatus) {
         // Correct Trip logic: if EITHER says TRIPPED, we are TRIPPED
         if (fbStatus.toUpperCase() == 'TRIPPED' || btStatus.toUpperCase() == 'TRIPPED') {
           return 'TRIPPED';
+        }
+        // Normalize common stable statuses
+        if (fbStatus.toUpperCase() == 'NORMAL' || fbStatus.toUpperCase() == 'STABLE') {
+           return 'STABLE';
         }
         return fbStatus;
       },
@@ -133,19 +147,22 @@ class FirebaseService {
       return Stream.value([]);
     }
 
-    return _getDb.ref('$_userPath/device_ids').onValue.switchMap((event) {
+    final uid = currentUser!.uid;
+
+    return _getDb.ref('devices').orderByChild('assigned_to').equalTo(uid).onValue.switchMap((event) {
       final data = event.snapshot.value;
-      String path;
-      if (data == null || (data is Map && data.isEmpty)) {
-        path = '$_userPath/logs';
-      } else if (data is Map) {
-        final deviceId = data.values.first.toString();
-        path = 'devices/$deviceId/logs';
+      
+      String logsPath;
+      if (data != null && data is Map && data.isNotEmpty) {
+          // Use the dynamic device ID found in the assigned_to field
+          final deviceId = data.keys.first;
+          logsPath = 'devices/$deviceId/logs';
       } else {
-        path = '$_userPath/logs';
+          // Fallback to local logs path
+          logsPath = '$_userPath/logs';
       }
 
-      return _getDb.ref(path).onValue.map((event) {
+      return _getDb.ref(logsPath).onValue.map((event) {
         final List<TripLog> logs = [];
         final dynamic val = event.snapshot.value;
         
@@ -329,6 +346,31 @@ class FirebaseService {
       handleTrip();
     } else if (msg.contains("STABLE")) {
       _bluetoothStatusController.add("STABLE");
+    } else if (msg.startsWith("DEVICE_ID:")) {
+      final id = msg.split(":")[1].trim();
+      _linkDeviceToUser(id);
+    }
+  }
+
+  Future<void> _linkDeviceToUser(String id) async {
+    if (_userPath == null) return;
+    try {
+      // 1. Check if already linked to avoid duplicates
+      final snap = await _getDb.ref('$_userPath/device_ids').get();
+      if (snap.exists && snap.value is Map) {
+        final existing = Map<String, dynamic>.from(snap.value as Map);
+        if (existing.values.contains(id)) return;
+      }
+      
+      // 2. Link User -> Device
+      await _getDb.ref('$_userPath/device_ids').push().set(id);
+      
+      // 3. Link Device -> User
+      await _getDb.ref('devices/$id/assigned_to').set(currentUser!.uid);
+      
+      debugPrint("Auto-Linked Device: $id");
+    } catch (e) {
+      debugPrint("Auto-link failed: $e");
     }
   }
 

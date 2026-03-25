@@ -9,9 +9,9 @@
 // 📡 IR Sensor Pin
 #define IR_SENSOR_PIN 5
 
-// 🔥 Firebase Project Credentials
-#define API_KEY "AIzaSyAhwUr4ZGAQC9NM3yVqkacskLGlwrrdGO8"
-#define DATABASE_URL "https://miniproject-fc41e-default-rtdb.firebaseio.com/"
+// 🔥 Project Credentials (matches flutter android config)
+#define API_KEY "AIzaSyAspo3Jm7F3YSAmeFyTUmqby5CiYXfMTos"
+#define DATABASE_URL "https://miniproject-fc41e-default-rtdb.firebaseio.com"
 
 // 🛠️ Global Objects
 BluetoothSerial SerialBT;
@@ -38,7 +38,7 @@ void setup() {
 
   // Generate unique Device ID from Mac address
   deviceId = String((uint32_t)ESP.getEfuseMac(), HEX);
-  deviceId.toUpperCase(); 
+  // removed toUpperCase() to match your database screenshot
   
   Serial.println("\n==============================");
   Serial.println("📱 CIRCU-GUARD INITIALIZED");
@@ -48,6 +48,7 @@ void setup() {
   // Start Bluetooth Serial
   SerialBT.begin(BLUETOOTH_NAME);
   Serial.println("🔵 Bluetooth Ready: " + String(BLUETOOTH_NAME));
+  SerialBT.println("DEVICE_ID:" + deviceId); // Echo ID over BT
   Serial.println("💡 Use the App to send WiFi credentials (SSID,PASS)");
 }
 
@@ -55,7 +56,7 @@ void loop() {
   // 1. Handle Bluetooth Configuration
   handleBluetooth();
   
-  // 2. Handle WiFi Connection and Firebase Updates
+  // 2. Handle WiFi Connection
   if (WiFi.status() == WL_CONNECTED) {
     if (!wifiConfigured) {
       Serial.println("\n✅ WiFi Connected!");
@@ -64,14 +65,27 @@ void loop() {
       initFirebase();
     }
     
-    checkSensor();
-  } else if (wifiConfigured) {
-    // Attempt background reconnect if we were once configured
-    static unsigned long lastAttempt = 0;
-    if (millis() - lastAttempt > 15000) {
-      Serial.println("🔄 Reconnecting WiFi...");
-      WiFi.begin(ssid.c_str(), password.c_str());
-      lastAttempt = millis();
+    // 3. Monitor Sensor (ONLY after WiFi has been configured once)
+    // We allow checking even if firebaseReady is pending so Serial/BT can report it.
+    if (wifiConfigured) {
+      checkSensor();
+    }
+
+    // 4. Periodic Connection Check (Serial Ping)
+    static unsigned long lastPing = 0;
+    if (millis() - lastPing > 60000) {
+      Serial.println("📡 System Status: Device Online (" + deviceId + ")");
+      lastPing = millis();
+    }
+  } else {
+    // Attempt background reconnect if we were once configured and not currently connecting
+    if (wifiConfigured && (WiFi.status() != WL_IDLE_STATUS)) {
+      static unsigned long lastAttempt = 0;
+      if (millis() - lastAttempt > 30000) { // 30s interval for stability
+        Serial.println("🔄 Reconnecting WiFi...");
+        WiFi.begin(ssid.c_str(), password.c_str());
+        lastAttempt = millis();
+      }
     }
   }
 
@@ -106,13 +120,14 @@ void initFirebase() {
     firebaseReady = true;
   } else {
     Serial.printf("❌ Firebase SignUp Error: %s\n", config.signer.signupError.message.c_str());
-    firebaseReady = false;
+    firebaseReady = false; 
+    // We will still try to begin config below
   }
 
   Firebase.begin(&config, &auth);
   Firebase.reconnectWiFi(true);
   
-  // Send initial state
+  // Send initial state immediately
   sendStatus(digitalRead(IR_SENSOR_PIN) == LOW ? "TRIPPED" : "STABLE");
 }
 
@@ -137,22 +152,22 @@ void checkSensor() {
 
 // 📤 Update Realtime Database Status
 void sendStatus(String status) {
-  if (!firebaseReady || WiFi.status() != WL_CONNECTED) {
+  if (WiFi.status() != WL_CONNECTED) {
     SerialBT.println("STATUS:" + status); // Send back via Bluetooth if WiFi is down
     return;
   }
 
-  String path = "/devices/" + deviceId + "/status";
+  String path = "devices/" + deviceId + "/status";
   if (Firebase.RTDB.setString(&fbdo, path, status)) {
     Serial.println("📤 RTDB → " + status);
   } else {
-    Serial.println("❌ RTDB Update Failed: " + fbdo.errorReason());
+    Serial.printf("❌ RTDB Update Failed: %s\n", fbdo.errorReason().c_str());
   }
 }
 
 // 📝 Push Logs to Database
 void logToDatabase(String status) {
-  if (!firebaseReady || WiFi.status() != WL_CONNECTED) return;
+  if (WiFi.status() != WL_CONNECTED) return;
 
   struct tm timeinfo;
   if (!getLocalTime(&timeinfo)) {
@@ -170,7 +185,7 @@ void logToDatabase(String status) {
   json.set("date", dateBuff);
   json.set("time", timeBuff);
 
-  String path = "/devices/" + deviceId + "/logs";
+  String path = "devices/" + deviceId + "/logs";
   if (Firebase.RTDB.pushJSON(&fbdo, path, &json)) {
     Serial.println("📝 Trip Log Saved Successfully");
   } else {

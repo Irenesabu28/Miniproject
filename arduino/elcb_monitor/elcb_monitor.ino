@@ -52,7 +52,7 @@ void loop() {
   if (prevState == HIGH && currentState == LOW) {
     Serial.println("TRIPPED (ONCE)");
 
-    Firebase.RTDB.setString(&fbdo, "database/users/" + uid + "/ELCB_SYSTEM/status", "TRIPPED");
+    Firebase.RTDB.setString(&fbdo, "users/" + uid + "/ELCB_SYSTEM/status", "TRIPPED");
 
     // Get time and update logs in JSON format for the Flutter app
     struct tm timeinfo;
@@ -67,7 +67,7 @@ void loop() {
       logJson.set("date", dateBuff);
       logJson.set("time", timeBuff);
 
-      Firebase.RTDB.pushJSON(&fbdo, "database/users/" + uid + "/logs", &logJson);
+      Firebase.RTDB.pushJSON(&fbdo, "users/" + uid + "/logs", &logJson);
     }
   }
 
@@ -75,7 +75,7 @@ void loop() {
   if (currentState == LOW) {
     Serial.println("STILL TRIPPED");
 
-    Firebase.RTDB.setString(&fbdo, "database/users/" + uid + "/ELCB_SYSTEM/status", "TRIPPED");
+    Firebase.RTDB.setString(&fbdo, "users/" + uid + "/ELCB_SYSTEM/status", "TRIPPED");
 
     delay(2000);
   }
@@ -84,7 +84,7 @@ void loop() {
   if (prevState == LOW && currentState == HIGH) {
     Serial.println("NORMAL");
 
-    Firebase.RTDB.setString(&fbdo, "database/users/" + uid + "/ELCB_SYSTEM/status", "NORMAL");
+    Firebase.RTDB.setString(&fbdo, "users/" + uid + "/ELCB_SYSTEM/status", "NORMAL");
   }
 
   prevState = currentState;
