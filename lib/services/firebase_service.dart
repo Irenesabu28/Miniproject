@@ -327,16 +327,12 @@ class FirebaseService {
     if (_userPath == null) return;
     
     try {
-      final uid = currentUser!.uid;
-      // Use dynamic lookup to find the correct logs path to clear
-      final snapshot = await _getDb.ref('devices').orderByChild('assigned_to').equalTo(uid).get();
-      
-      if (snapshot.exists && snapshot.value is Map) {
-        final data = snapshot.value as Map;
-        final deviceId = data.keys.first;
+      final deviceSnap = await _getDb.ref('$_userPath/device_ids').get();
+      final data = deviceSnap.value;
+      if (data is Map && data.isNotEmpty) {
+        final deviceId = data.values.first.toString();
         await _getDb.ref('devices/$deviceId/logs').remove();
       } else {
-        // Fallback to local logs
         await _getDb.ref('$_userPath/logs').remove();
       }
     } catch (e) {
@@ -361,31 +357,8 @@ class FirebaseService {
 
     tripHistory.insert(0, formattedTime); // newest on top
 
-    saveHistory(); // Local Persistence
+    saveHistory(); // IMPORTANT
     showTripNotification();
-
-    // REGRESSION FIX: Also push log to Firebase if possible
-    if (_userPath != null) {
-      final uid = currentUser!.uid;
-      final dateStr = "${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}";
-      final timeStr = "${now.hour.toString().padLeft(2,'0')}:${now.minute.toString().padLeft(2,'0')}:${now.second.toString().padLeft(2,'0')}";
-
-      _getDb.ref('devices').orderByChild('assigned_to').equalTo(uid).get().then((snapshot) {
-        String logsPath;
-        if (snapshot.exists && snapshot.value is Map) {
-          final deviceId = (snapshot.value as Map).keys.first;
-          logsPath = 'devices/$deviceId/logs';
-        } else {
-          logsPath = '$_userPath/logs';
-        }
-
-        _getDb.ref(logsPath).push().set({
-          "status": "TRIPPED",
-          "date": dateStr,
-          "time": timeStr
-        });
-      }).catchError((e) => debugPrint("Cloud logging failed: $e"));
-    }
 
     if (tripHistory.length >= 5) {
       const warningMsg = "Multiple trips detected! Please check your wiring and appliances for safety.";
